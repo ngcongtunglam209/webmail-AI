@@ -130,7 +130,8 @@ async function getAttachment(emailId, index) {
 async function deleteEmail(id, address) {
   const email = await getEmail(id);
   if (email) {
-    const atts = JSON.parse(email.attachments || '[]');
+    let atts = [];
+    try { atts = JSON.parse(email.attachments || '[]'); } catch (_) {}
     if (atts.length) {
       await redis.del(...atts.map((_, i) => attKey(id, i)));
     }

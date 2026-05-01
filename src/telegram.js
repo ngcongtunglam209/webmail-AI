@@ -124,12 +124,9 @@ function startTelegramBot() {
 
     if (data.startsWith('del:')) {
       const emailId = data.slice(4);
-      // Lookup address từ email stored trong Redis
       const email = await storage.getEmail(emailId);
       if (email) await storage.deleteEmail(emailId, email.to);
-      await bot.editMessageText('🗑️ Đã xóa email.', {
-        chat_id: chatId, message_id: msgId,
-      }).catch(() => {});
+      await bot.deleteMessage(chatId, msgId).catch(() => {});
     }
 
     if (data.startsWith('ttl:')) {

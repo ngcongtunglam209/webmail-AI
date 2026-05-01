@@ -392,21 +392,24 @@ async function notifyTelegram(to, emailMeta) {
 
     const otp = emailMeta.otp || null;
 
-    let text = `📬 *Email mới\\!*\n\n`;
-    text += `📧 \`${escMd(to)}\`\n`;
-    text += `👤 ${escMd(trimSender(emailMeta.from))}\n`;
-    text += `📋 ${escMd(emailMeta.subject)}`;
-    if (otp) text += `\n\n🔐 OTP: \`${escMd(otp)}\``;
+    // Dùng HTML thay MarkdownV2 — không bị lỗi ký tự đặc biệt
+    let text = `📬 <b>Email mới!</b>\n\n`;
+    text += `📧 <code>${escHtml(to)}</code>\n`;
+    text += `👤 ${escHtml(trimSender(emailMeta.from))}\n`;
+    text += `📋 ${escHtml(emailMeta.subject)}`;
+    if (otp) text += `\n\n🔐 OTP: <b><code>${escHtml(otp)}</code></b>`;
+
+    const inlineKeyboard = {
+      inline_keyboard: [[
+        { text: '📖 Xem toàn bộ email', callback_data: `readid:${emailMeta.id}` },
+        { text: '🗑️ Xóa',              callback_data: `del:${emailMeta.id}:${to}` },
+      ]],
+    };
 
     await bot.sendMessage(chatId, text, {
-      parse_mode: 'MarkdownV2',
-      reply_markup: {
-        inline_keyboard: [[
-          { text: '📖 Xem toàn bộ email', callback_data: `readid:${emailMeta.id}` },
-          { text: '🗑️ Xóa',              callback_data: `del:${emailMeta.id}:${to}` },
-        ]],
-      },
-    }).catch(() => send(chatId, text, mainMenu()));
+      parse_mode: 'HTML',
+      reply_markup: inlineKeyboard,
+    });
   } catch (err) {
     console.error('[Telegram] notifyTelegram:', err.message);
   }
@@ -449,6 +452,13 @@ function trimSender(from) {
 
 function escMd(str) {
   return String(str || '').replace(/[_*[\]()~`>#+=|{}.!\\-]/g, '\\$&');
+}
+
+function escHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 function formatTTL(seconds) {

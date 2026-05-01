@@ -240,17 +240,31 @@ function prependEmailItem(email, unread = false) {
   const color    = getAvatarColor(email.from);
   const hasAtts  = (email.attachments || []).length > 0;
 
+  const ts = email.receivedAt || new Date(email.date).getTime();
+
   item.innerHTML = `
     <div class="avatar" style="background:${color}">${initials}</div>
     <div class="email-info">
       <div class="email-from">${escHtml(email.from)}</div>
       <div class="email-subject">${escHtml(email.subject)}${hasAtts ? ' 📎' : ''}</div>
+      ${email.otp ? `<div class="otp-badge" data-otp="${escHtml(email.otp)}" title="Click để sao chép">🔐 ${escHtml(email.otp)}</div>` : ''}
     </div>
     <div class="email-right">
-      <div class="email-time">${relativeTime(email.receivedAt || email.date)}</div>
+      <div class="email-time" data-ts="${ts}">${relativeTime(ts)}</div>
       <div class="unread-dot"></div>
     </div>
   `;
+
+  // Click OTP badge copy ngay, không mở modal
+  const otpBadge = item.querySelector('.otp-badge');
+  if (otpBadge) {
+    otpBadge.addEventListener('click', (e) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(otpBadge.dataset.otp);
+      otpBadge.textContent = '✓ Đã sao chép!';
+      setTimeout(() => { otpBadge.innerHTML = `🔐 ${escHtml(otpBadge.dataset.otp)}`; }, 2000);
+    });
+  }
 
   item.addEventListener('click', () => openEmail(email.id, item));
   emailList.prepend(item);
@@ -273,6 +287,25 @@ async function openEmail(id, item) {
   const color    = getAvatarColor(email.from);
   modalAvatar.textContent  = initials;
   modalAvatar.style.background = color;
+
+  // OTP trong modal
+  const otpBar = document.getElementById('otpBar');
+  if (email.otp) {
+    otpBar.classList.remove('hidden');
+    otpBar.innerHTML = `
+      <span class="otp-label">🔐 Mã OTP:</span>
+      <span class="otp-code">${escHtml(email.otp)}</span>
+      <button class="otp-copy" id="otpCopyBtn">Sao chép</button>
+    `;
+    document.getElementById('otpCopyBtn').addEventListener('click', () => {
+      navigator.clipboard.writeText(email.otp);
+      document.getElementById('otpCopyBtn').textContent = '✓ Đã sao chép!';
+      setTimeout(() => { document.getElementById('otpCopyBtn').textContent = 'Sao chép'; }, 2000);
+    });
+  } else {
+    otpBar.classList.add('hidden');
+    otpBar.innerHTML = '';
+  }
 
   // Attachments
   const atts = JSON.parse(typeof email.attachments === 'string' ? email.attachments : JSON.stringify(email.attachments || []));
@@ -411,6 +444,13 @@ function sendBrowserNotification(title, body) {
   if (document.visibilityState === 'visible') return; // chỉ hiện khi tab bị ẩn
   new Notification(title, { body, icon: '/favicon.ico' });
 }
+
+// ── Cập nhật timestamp mỗi 60 giây ──
+setInterval(() => {
+  document.querySelectorAll('.email-time[data-ts]').forEach(el => {
+    el.textContent = relativeTime(parseInt(el.dataset.ts));
+  });
+}, 60000);
 
 // ── Auto-refresh fallback ──
 function startPolling() {

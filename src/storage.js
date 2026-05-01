@@ -1,6 +1,7 @@
 const Redis = require('ioredis');
 const { v4: uuidv4 } = require('uuid');
 const config = require('./config');
+const { extractOTP } = require('./otp');
 
 const redis = new Redis({
   host: config.redis.host,
@@ -33,6 +34,8 @@ async function saveEmail(to, parsed, ttl = config.mail.ttl) {
     size:        a.size        || 0,
   }));
 
+  const otp = extractOTP(parsed.subject, parsed.text) || '';
+
   const emailData = {
     id,
     to:          address,
@@ -42,6 +45,7 @@ async function saveEmail(to, parsed, ttl = config.mail.ttl) {
     html:        parsed.html       || '',
     date:        parsed.date ? parsed.date.toISOString() : new Date().toISOString(),
     receivedAt:  now,
+    otp,
     attachments: JSON.stringify(attachmentsMeta),
   };
 
@@ -98,6 +102,7 @@ async function getInbox(address) {
         date:        data.date,
         receivedAt:  parseInt(data.receivedAt),
         hasHtml:     !!data.html,
+        otp:         data.otp || null,
         attachments: JSON.parse(data.attachments || '[]'),
       };
     })
@@ -146,7 +151,10 @@ async function getInboxTtl(address) {
   return parseInt(stored) || config.mail.ttl;
 }
 
+function _redis() { return redis; }
+
 module.exports = {
   connect, saveEmail, getInbox, getEmail,
   getAttachment, deleteEmail, refreshInbox, getInboxTtl,
+  _redis,
 };

@@ -492,6 +492,69 @@ body {
 .modal-from, .modal-date { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
 .modal-controls { display: flex; gap: 8px; flex-shrink: 0; }
 
+/* ── OTP badge (trong inbox list) ── */
+.otp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  background: linear-gradient(135deg, #10b98122, #3b82f622);
+  border: 1px solid #10b98155;
+  color: #34d399;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: monospace;
+  padding: 3px 10px;
+  border-radius: 99px;
+  cursor: pointer;
+  transition: all .15s;
+  letter-spacing: .5px;
+}
+.otp-badge:hover {
+  background: linear-gradient(135deg, #10b98133, #3b82f633);
+  border-color: #10b981aa;
+}
+
+/* ── OTP bar (trong modal) ── */
+.otp-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #10b98115, #3b82f615);
+  border-bottom: 1px solid #10b98133;
+}
+
+.otp-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.otp-code {
+  font-size: 22px;
+  font-weight: 800;
+  font-family: monospace;
+  color: #34d399;
+  letter-spacing: 4px;
+  flex: 1;
+}
+
+.otp-copy {
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+  white-space: nowrap;
+}
+.otp-copy:hover { background: #059669; }
+
 /* ── Attachments bar ── */
 .attachments-bar {
   display: flex;

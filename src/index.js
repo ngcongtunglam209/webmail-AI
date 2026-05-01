@@ -9,7 +9,8 @@ const path       = require('path');
 const config    = require('./config');
 const storage   = require('./storage');
 const apiRouter = require('./api');
-const { startSMTP, setNewEmailHandler } = require('./smtp');
+const { startSMTP, setNewEmailHandler }      = require('./smtp');
+const { startTelegramBot, notifyTelegram }   = require('./telegram');
 
 async function main() {
   await storage.connect();
@@ -85,7 +86,10 @@ async function main() {
 
   setNewEmailHandler((to, emailMeta) => {
     io.to(`inbox:${to}`).emit('new_email', emailMeta);
+    notifyTelegram(to, emailMeta);
   });
+
+  startTelegramBot();
 
   httpServer.listen(config.port, () => {
     console.log(`[HTTP] Listening on port ${config.port}`);

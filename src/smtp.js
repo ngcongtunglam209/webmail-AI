@@ -1,7 +1,8 @@
 const { SMTPServer } = require('smtp-server');
 const { simpleParser } = require('mailparser');
-const config  = require('./config');
-const storage = require('./storage');
+const config         = require('./config');
+const storage        = require('./storage');
+const { extractOTP } = require('./otp');
 
 let onNewEmail = null;
 
@@ -43,12 +44,14 @@ function createSMTPServer() {
             console.log(`[SMTP] New email → ${to} (id: ${id})`);
 
             if (onNewEmail) {
+              const otp = extractOTP(parsed.subject, parsed.text) || null;
               onNewEmail(to, {
                 id,
                 from:        parsed.from?.text || '',
                 subject:     parsed.subject    || '(no subject)',
                 date:        parsed.date?.toISOString() || new Date().toISOString(),
                 receivedAt:  Date.now(),
+                otp,
                 attachments: (parsed.attachments || []).map((a, i) => ({
                   index:       i,
                   filename:    a.filename    || `file_${i}`,

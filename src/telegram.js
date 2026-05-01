@@ -118,6 +118,11 @@ function startTelegramBot() {
       await handleRead(chatId, parseInt(idx));
     }
 
+    if (data.startsWith('readid:')) {
+      const emailId = data.slice(7);
+      await handleReadById(chatId, emailId);
+    }
+
     if (data.startsWith('del:')) {
       const [, emailId, address] = data.split(':');
       await storage.deleteEmail(emailId, address);
@@ -321,6 +326,33 @@ async function handleHelp(chatId) {
   );
 }
 
+async function handleReadById(chatId, emailId) {
+  const email = await storage.getEmail(emailId);
+  if (!email) return send(chatId, '❌ Email không còn tồn tại\\.', mainMenu());
+
+  const otp = email.otp || extractOTP(email.subject, email.text);
+
+  let text = `📧 *${escMd(email.subject)}*\n`;
+  text += `${'─'.repeat(28)}\n`;
+  text += `👤 Từ: ${escMd(email.from)}\n`;
+  text += `🕐 ${relativeTime(email.receivedAt)}\n`;
+  if (otp) text += `🔐 OTP: \`${escMd(otp)}\`\n`;
+  text += `${'─'.repeat(28)}\n`;
+
+  const body = (email.text || '').slice(0, 2000).trim();
+  text += body ? escMd(body) : '_\\(không có nội dung text\\)_';
+  if ((email.text || '').length > 2000) text += '\n_\\.\\.\\. bị cắt bớt_';
+
+  await bot.sendMessage(chatId, text, {
+    parse_mode: 'MarkdownV2',
+    reply_markup: {
+      inline_keyboard: [[
+        { text: '🗑️ Xóa email này', callback_data: `del:${emailId}:${email.to}` },
+      ]],
+    },
+  }).catch(() => send(chatId, '❌ Không thể hiển thị email này\\.'));
+}
+
 async function handleDonate(chatId) {
   const qrUrl =
     'https://img.vietqr.io/image/ICB-0842879198-compact_2.png'
@@ -366,7 +398,16 @@ async function notifyTelegram(to, emailMeta) {
     text += `📋 ${escMd(emailMeta.subject)}`;
     if (otp) text += `\n\n🔐 OTP: \`${escMd(otp)}\``;
 
-    await send(chatId, text, mainMenu());
+    await bot.sendMessage(chatId, text, {
+      parse_mode: 'MarkdownV2',
+      reply_markup: {
+        inline_keyboard: [[
+          { text: '📖 Xem toàn bộ email', callback_data: `readid:${emailMeta.id}` },
+          { text: '🗑️ Xóa',              callback_data: `del:${emailMeta.id}:${to}` },
+        ]],
+        ...mainMenu().reply_markup,
+      },
+    }).catch(() => send(chatId, text, mainMenu()));
   } catch (err) {
     console.error('[Telegram] notifyTelegram:', err.message);
   }

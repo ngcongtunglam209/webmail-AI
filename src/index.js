@@ -1,46 +1,81 @@
-const express = require('express');
-const http = require('http');
+const express    = require('express');
+const http       = require('http');
 const { Server } = require('socket.io');
-const cors = require('cors');
-const path = require('path');
+const cors       = require('cors');
+const helmet     = require('helmet');
+const rateLimit  = require('express-rate-limit');
+const path       = require('path');
 
-const config = require('./config');
-const storage = require('./storage');
+const config    = require('./config');
+const storage   = require('./storage');
 const apiRouter = require('./api');
 const { startSMTP, setNewEmailHandler } = require('./smtp');
 
 async function main() {
-  // Kết nối Redis
   await storage.connect();
 
-  // Express app
   const app = express();
-  app.use(cors());
-  app.use(express.json());
-  app.use(express.static(path.join(__dirname, '../public')));
 
-  // API routes
+  // Security headers
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc:  ["'self'"],
+        scriptSrc:   ["'self'"],
+        styleSrc:    ["'self'", 'https://fonts.googleapis.com', "'unsafe-inline'"],
+        fontSrc:     ["'self'", 'https://fonts.gstatic.com'],
+        imgSrc:      ["'self'", 'data:', 'https://img.vietqr.io', 'https://api.qrserver.com'],
+        connectSrc:  ["'self'", 'ws:', 'wss:'],
+        frameSrc:    ["'self'"],
+      },
+    },
+  }));
+
+  app.use(cors());
+  app.use(express.json({ limit: '1mb' }));
+  app.set('trust proxy', 1);
+
+  // Rate limiting
+  app.use('/api/', rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 phút
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Quá nhiều request, thử lại sau.' },
+  }));
+
+  app.use('/api/generate', rateLimit({
+    windowMs: 60 * 1000, // 1 phút
+    max: 15,
+    message: { error: 'Tạo quá nhiều địa chỉ, thử lại sau.' },
+  }));
+
+  app.use('/api/inbox', rateLimit({
+    windowMs: 60 * 1000,
+    max: 120,
+    message: { error: 'Quá nhiều request inbox.' },
+  }));
+
+  app.use(express.static(path.join(__dirname, '../public')));
   app.use('/api', apiRouter);
 
-  // Fallback về index.html
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/index.html'));
   });
 
-  // HTTP server + Socket.io
   const httpServer = http.createServer(app);
   const io = new Server(httpServer, {
     cors: { origin: '*' },
+    // Giới hạn số kết nối đồng thời
+    perMessageDeflate: false,
   });
 
-  // Socket.io: client subscribe theo địa chỉ email
   io.on('connection', (socket) => {
     socket.on('watch', (address) => {
-      if (typeof address === 'string') {
+      if (typeof address === 'string' && address.length < 200) {
         socket.join(`inbox:${address.toLowerCase()}`);
       }
     });
-
     socket.on('unwatch', (address) => {
       if (typeof address === 'string') {
         socket.leave(`inbox:${address.toLowerCase()}`);
@@ -48,17 +83,14 @@ async function main() {
     });
   });
 
-  // Khi có email mới → push đến client đang watch
   setNewEmailHandler((to, emailMeta) => {
     io.to(`inbox:${to}`).emit('new_email', emailMeta);
   });
 
-  // Start HTTP server
   httpServer.listen(config.port, () => {
     console.log(`[HTTP] Listening on port ${config.port}`);
   });
 
-  // Start SMTP server
   startSMTP();
 
   console.log(`[App] Domains: ${config.domains.join(', ') || 'none configured'}`);

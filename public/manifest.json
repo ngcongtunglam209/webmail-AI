@@ -1,0 +1,12 @@
+{
+  "name": "TempMail",
+  "short_name": "TempMail",
+  "description": "Hộp thư tạm thời miễn phí, không cần đăng ký",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060a12",
+  "theme_color": "#3b82f6",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

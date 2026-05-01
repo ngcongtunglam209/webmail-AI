@@ -5,6 +5,7 @@ let currentEmailId = null;
 let currentTtl     = 3600;
 let ttlRemaining   = 3600;
 let ttlInterval    = null;
+let pollInterval   = null;
 let readIds        = new Set();
 
 // DOM refs
@@ -64,8 +65,17 @@ const copyStkBtn     = document.getElementById('copyStkBtn');
 })();
 
 // ── Socket ──
-socket.on('connect',    () => setStatus('Đã kết nối', 'connected'));
-socket.on('disconnect', () => setStatus('Mất kết nối', 'error'));
+socket.on('connect', () => {
+  setStatus('Đã kết nối', 'connected');
+  stopPolling();
+  if (currentAddress) loadInbox(); // sync lại sau khi reconnect
+});
+
+socket.on('disconnect', () => {
+  setStatus('Mất kết nối — đang dùng chế độ dự phòng', 'error');
+  startPolling();
+});
+
 socket.on('new_email',  (meta) => {
   prependEmailItem(meta, true);
   updateCount();
@@ -400,6 +410,18 @@ function sendBrowserNotification(title, body) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   if (document.visibilityState === 'visible') return; // chỉ hiện khi tab bị ẩn
   new Notification(title, { body, icon: '/favicon.ico' });
+}
+
+// ── Auto-refresh fallback ──
+function startPolling() {
+  if (pollInterval) return;
+  pollInterval = setInterval(() => {
+    if (currentAddress) loadInbox();
+  }, 30000);
+}
+
+function stopPolling() {
+  if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
 }
 
 // ── Status ──

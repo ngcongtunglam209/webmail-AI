@@ -573,6 +573,138 @@ body {
 
 .hidden { display: none !important; }
 
+/* ── Donate button ── */
+.btn-donate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(135deg, #f59e0b22, #ef444422);
+  border: 1px solid #f59e0b44;
+  border-radius: var(--radius);
+  color: #fbbf24;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-donate:hover {
+  background: linear-gradient(135deg, #f59e0b33, #ef444433);
+  border-color: #f59e0b88;
+}
+
+/* ── Donate modal ── */
+.donate-modal {
+  width: min(460px, calc(100vw - 32px));
+  max-height: 90vh;
+}
+
+.donate-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.donate-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.donate-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+.donate-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.qr-wrap {
+  display: flex;
+  justify-content: center;
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.qr-img {
+  width: 100%;
+  max-width: 280px;
+  border-radius: 8px;
+  display: block;
+}
+
+.bank-info {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.bank-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+.bank-row:last-child { border-bottom: none; }
+
+.bank-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.bank-value {
+  font-size: 13px;
+  font-weight: 500;
+  text-align: right;
+}
+
+.bank-note {
+  color: var(--warning);
+}
+
+.bank-stk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-copy-stk {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background .15s;
+  white-space: nowrap;
+}
+.btn-copy-stk:hover { background: #2563eb; }
+
+.donate-thanks {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.7;
+  padding: 0 4px;
+}
+
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }

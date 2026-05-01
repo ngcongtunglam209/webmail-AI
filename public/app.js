@@ -31,6 +31,11 @@ const textContent    = document.getElementById('textContent');
 const deleteEmailBtn = document.getElementById('deleteEmailBtn');
 const closeModalBtn  = document.getElementById('closeModalBtn');
 const toastContainer = document.getElementById('toastContainer');
+const donateBtn      = document.getElementById('donateBtn');
+const donateModal    = document.getElementById('donateModal');
+const donateOverlay  = document.getElementById('donateOverlay');
+const closeDonateBtn = document.getElementById('closeDonateBtn');
+const copyStkBtn     = document.getElementById('copyStkBtn');
 
 // Init
 (async () => {
@@ -66,7 +71,21 @@ customUser.addEventListener('keydown', e => { if (e.key === 'Enter') customBtn.c
 
 closeModalBtn.addEventListener('click', closeModal);
 modalOverlay.addEventListener('click', closeModal);
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeDonate(); } });
+
+donateBtn.addEventListener('click', () => {
+  donateModal.classList.remove('hidden');
+  donateOverlay.classList.remove('hidden');
+});
+closeDonateBtn.addEventListener('click', closeDonate);
+donateOverlay.addEventListener('click', (e) => {
+  if (!donateModal.contains(e.target)) closeDonate();
+});
+copyStkBtn.addEventListener('click', () => {
+  navigator.clipboard.writeText('0842879198');
+  copyStkBtn.textContent = 'Đã sao chép!';
+  setTimeout(() => { copyStkBtn.textContent = 'Sao chép'; }, 2000);
+});
 
 deleteEmailBtn.addEventListener('click', async () => {
   if (!currentEmailId || !currentAddress) return;
@@ -207,6 +226,11 @@ function closeModal() {
   emailModal.classList.add('hidden');
   modalOverlay.classList.add('hidden');
   currentEmailId = null;
+}
+
+function closeDonate() {
+  donateModal.classList.add('hidden');
+  donateOverlay.classList.add('hidden');
 }
 
 function updateCount() {

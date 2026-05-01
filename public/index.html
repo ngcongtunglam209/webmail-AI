@@ -51,6 +51,11 @@
         <button class="btn btn-secondary btn-full" id="customBtn">Tạo địa chỉ này</button>
       </div>
 
+      <!-- Donate button -->
+      <button class="btn-donate" id="donateBtn">
+        <span>☕</span> Ủng hộ tác giả
+      </button>
+
       <div class="sidebar-footer">
         <div class="status-dot" id="statusDot"></div>
         <span id="statusText">Đang kết nối...</span>
@@ -72,6 +77,55 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- Donate modal -->
+  <div id="donateOverlay" class="modal-overlay hidden"></div>
+  <div id="donateModal" class="modal donate-modal hidden">
+    <div class="donate-header">
+      <div>
+        <div class="donate-title">☕ Ủng hộ tác giả</div>
+        <div class="donate-subtitle">Cảm ơn bạn đã dùng TempMail!</div>
+      </div>
+      <button class="btn btn-ghost" id="closeDonateBtn">✕</button>
+    </div>
+
+    <div class="donate-body">
+      <div class="qr-wrap">
+        <img
+          src="https://img.vietqr.io/image/ICB-0842879198-compact2.png?accountName=NGUYEN%20CONG%20TUNG%20LAM&addInfo=Ung%20ho%20TempMail"
+          alt="VietQR donate"
+          class="qr-img"
+          id="qrImg"
+        />
+      </div>
+
+      <div class="bank-info">
+        <div class="bank-row">
+          <span class="bank-label">Ngân hàng</span>
+          <span class="bank-value">VietinBank</span>
+        </div>
+        <div class="bank-row">
+          <span class="bank-label">Số tài khoản</span>
+          <div class="bank-stk">
+            <span class="bank-value" id="stkText">0842879198</span>
+            <button class="btn-copy-stk" id="copyStkBtn">Sao chép</button>
+          </div>
+        </div>
+        <div class="bank-row">
+          <span class="bank-label">Chủ tài khoản</span>
+          <span class="bank-value">NGUYEN CONG TUNG LAM</span>
+        </div>
+        <div class="bank-row">
+          <span class="bank-label">Nội dung</span>
+          <span class="bank-value bank-note">Ung ho TempMail</span>
+        </div>
+      </div>
+
+      <p class="donate-thanks">
+        Mọi khoản ủng hộ dù nhỏ đều giúp duy trì server và phát triển thêm tính năng mới. Cảm ơn bạn rất nhiều! 🙏
+      </p>
+    </div>
   </div>
 
   <!-- Email modal -->

@@ -3,72 +3,102 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TempMail</title>
+  <title>TempMail — Hộp thư tạm thời</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>📬 TempMail</h1>
-      <p>Địa chỉ email tạm thời, tự động xóa sau 1 giờ</p>
-    </header>
+  <!-- Toast container -->
+  <div id="toastContainer"></div>
 
-    <div class="email-box">
-      <div class="address-bar">
-        <input type="text" id="emailAddress" readonly placeholder="Đang tạo địa chỉ..." />
-        <button id="copyBtn" title="Sao chép">Copy</button>
-        <button id="refreshBtn" title="Làm mới inbox">↻</button>
-        <button id="newBtn" title="Tạo địa chỉ mới">Mới</button>
+  <div class="page">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="logo-icon">✉</div>
+        <span class="logo-text">TempMail</span>
       </div>
 
-      <div class="domain-select">
-        <span>Domain:</span>
-        <select id="domainSelect"></select>
-        <span>hoặc nhập tùy chỉnh:</span>
-        <input type="text" id="customUser" placeholder="username" maxlength="50" />
-        <button id="customBtn">Tạo</button>
+      <div class="address-card">
+        <div class="address-label">Địa chỉ của bạn</div>
+        <div class="address-value" id="emailAddress">Đang tạo...</div>
+        <div class="address-actions">
+          <button class="btn btn-primary btn-full" id="copyBtn">
+            <span class="btn-icon">⎘</span> Sao chép
+          </button>
+          <button class="btn btn-ghost" id="refreshBtn" title="Làm mới">↻</button>
+          <button class="btn btn-ghost" id="newBtn" title="Địa chỉ mới">+</button>
+        </div>
+
+        <!-- TTL progress bar -->
+        <div class="ttl-bar">
+          <div class="ttl-bar-track">
+            <div class="ttl-bar-fill" id="ttlFill"></div>
+          </div>
+          <div class="ttl-text" id="timerText">60:00</div>
+        </div>
       </div>
 
-      <div class="status-bar">
+      <!-- Custom address -->
+      <div class="custom-section">
+        <div class="custom-label">Tùy chỉnh địa chỉ</div>
+        <div class="custom-row">
+          <input type="text" id="customUser" class="input-custom" placeholder="username" maxlength="50" />
+          <span class="at-sign">@</span>
+          <select id="domainSelect" class="select-domain"></select>
+        </div>
+        <button class="btn btn-secondary btn-full" id="customBtn">Tạo địa chỉ này</button>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="status-dot" id="statusDot"></div>
         <span id="statusText">Đang kết nối...</span>
-        <span id="timerText"></span>
       </div>
-    </div>
+    </aside>
 
-    <div class="inbox-container">
-      <div class="inbox-header">
-        <h2>Inbox <span id="emailCount">(0)</span></h2>
+    <!-- Main content -->
+    <main class="main">
+      <div class="main-header">
+        <h2 class="inbox-title">Hộp thư đến</h2>
+        <span class="inbox-badge" id="emailCount">0</span>
       </div>
 
       <div id="emailList" class="email-list">
-        <div class="empty-state">Chưa có email nào. Đang chờ...</div>
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <div class="empty-title">Chưa có email nào</div>
+          <div class="empty-desc">Sao chép địa chỉ và dùng để đăng ký dịch vụ.<br/>Email sẽ xuất hiện ở đây trong vài giây.</div>
+        </div>
       </div>
-    </div>
+    </main>
+  </div>
 
-    <div id="emailModal" class="modal hidden">
-      <div class="modal-content">
-        <div class="modal-header">
-          <div class="modal-meta">
-            <h3 id="modalSubject"></h3>
-            <div id="modalFrom"></div>
-            <div id="modalDate"></div>
-          </div>
-          <div class="modal-actions">
-            <button id="deleteEmailBtn">Xóa</button>
-            <button id="closeModalBtn">✕</button>
-          </div>
-        </div>
-        <div class="modal-tabs">
-          <button class="tab-btn active" data-tab="html">HTML</button>
-          <button class="tab-btn" data-tab="text">Text</button>
-        </div>
-        <div id="emailBody" class="email-body">
-          <iframe id="htmlFrame" sandbox="allow-same-origin"></iframe>
-          <pre id="textContent" class="hidden"></pre>
+  <!-- Email modal -->
+  <div id="modalOverlay" class="modal-overlay hidden"></div>
+  <div id="emailModal" class="modal hidden">
+    <div class="modal-header">
+      <div class="modal-sender">
+        <div class="avatar" id="modalAvatar"></div>
+        <div class="modal-meta">
+          <div class="modal-subject" id="modalSubject"></div>
+          <div class="modal-from" id="modalFrom"></div>
+          <div class="modal-date" id="modalDate"></div>
         </div>
       </div>
+      <div class="modal-controls">
+        <button class="btn btn-danger" id="deleteEmailBtn">Xóa</button>
+        <button class="btn btn-ghost" id="closeModalBtn">✕</button>
+      </div>
     </div>
-    <div id="modalOverlay" class="modal-overlay hidden"></div>
+    <div class="modal-tabs">
+      <button class="tab active" data-tab="html">HTML</button>
+      <button class="tab" data-tab="text">Văn bản</button>
+    </div>
+    <div class="modal-body">
+      <iframe id="htmlFrame" sandbox="allow-same-origin" title="Email content"></iframe>
+      <pre id="textContent" class="hidden"></pre>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>

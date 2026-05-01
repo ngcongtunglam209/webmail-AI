@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TempMail</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📬 TempMail</h1>
+      <p>Địa chỉ email tạm thời, tự động xóa sau 1 giờ</p>
+    </header>
+
+    <div class="email-box">
+      <div class="address-bar">
+        <input type="text" id="emailAddress" readonly placeholder="Đang tạo địa chỉ..." />
+        <button id="copyBtn" title="Sao chép">Copy</button>
+        <button id="refreshBtn" title="Làm mới inbox">↻</button>
+        <button id="newBtn" title="Tạo địa chỉ mới">Mới</button>
+      </div>
+
+      <div class="domain-select">
+        <span>Domain:</span>
+        <select id="domainSelect"></select>
+        <span>hoặc nhập tùy chỉnh:</span>
+        <input type="text" id="customUser" placeholder="username" maxlength="50" />
+        <button id="customBtn">Tạo</button>
+      </div>
+
+      <div class="status-bar">
+        <span id="statusText">Đang kết nối...</span>
+        <span id="timerText"></span>
+      </div>
+    </div>
+
+    <div class="inbox-container">
+      <div class="inbox-header">
+        <h2>Inbox <span id="emailCount">(0)</span></h2>
+      </div>
+
+      <div id="emailList" class="email-list">
+        <div class="empty-state">Chưa có email nào. Đang chờ...</div>
+      </div>
+    </div>
+
+    <div id="emailModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-meta">
+            <h3 id="modalSubject"></h3>
+            <div id="modalFrom"></div>
+            <div id="modalDate"></div>
+          </div>
+          <div class="modal-actions">
+            <button id="deleteEmailBtn">Xóa</button>
+            <button id="closeModalBtn">✕</button>
+          </div>
+        </div>
+        <div class="modal-tabs">
+          <button class="tab-btn active" data-tab="html">HTML</button>
+          <button class="tab-btn" data-tab="text">Text</button>
+        </div>
+        <div id="emailBody" class="email-body">
+          <iframe id="htmlFrame" sandbox="allow-same-origin"></iframe>
+          <pre id="textContent" class="hidden"></pre>
+        </div>
+      </div>
+    </div>
+    <div id="modalOverlay" class="modal-overlay hidden"></div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

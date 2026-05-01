@@ -33,11 +33,12 @@ function mainMenu() {
 }
 
 // Inline buttons cho từng email trong inbox
+// callback_data giới hạn 64 bytes — chỉ truyền id/index, lookup address khi xử lý
 function emailInlineKeyboard(emailId, address, idx) {
   return {
     inline_keyboard: [[
-      { text: '📖 Đọc',       callback_data: `read:${idx}:${address}` },
-      { text: '🗑️ Xóa',      callback_data: `del:${emailId}:${address}` },
+      { text: '📖 Đọc',  callback_data: `read:${idx}`    },   // max ~8 bytes
+      { text: '🗑️ Xóa', callback_data: `del:${emailId}` },   // max 40 bytes
     ]],
   };
 }
@@ -113,22 +114,21 @@ function startTelegramBot() {
     const msgId  = query.message.message_id;
     const data   = query.data;
 
-    if (data.startsWith('read:')) {
-      const [, idx, address] = data.split(':');
-      await handleRead(chatId, parseInt(idx));
-    }
-
     if (data.startsWith('readid:')) {
       const emailId = data.slice(7);
       await handleReadById(chatId, emailId);
+    } else if (data.startsWith('read:')) {
+      const idx = parseInt(data.slice(5)) || 1;
+      await handleRead(chatId, idx);
     }
 
     if (data.startsWith('del:')) {
-      const [, emailId, address] = data.split(':');
-      await storage.deleteEmail(emailId, address);
-      await bot.editMessageText('🗑️ Đã xóa email\\.', {
+      const emailId = data.slice(4);
+      // Lookup address từ email stored trong Redis
+      const email = await storage.getEmail(emailId);
+      if (email) await storage.deleteEmail(emailId, email.to);
+      await bot.editMessageText('🗑️ Đã xóa email.', {
         chat_id: chatId, message_id: msgId,
-        parse_mode: 'MarkdownV2',
       }).catch(() => {});
     }
 
@@ -347,7 +347,7 @@ async function handleReadById(chatId, emailId) {
     parse_mode: 'MarkdownV2',
     reply_markup: {
       inline_keyboard: [[
-        { text: '🗑️ Xóa email này', callback_data: `del:${emailId}:${email.to}` },
+        { text: '🗑️ Xóa email này', callback_data: `del:${emailId}` },
       ]],
     },
   }).catch(() => send(chatId, '❌ Không thể hiển thị email này\\.'));
@@ -402,7 +402,7 @@ async function notifyTelegram(to, emailMeta) {
     const inlineKeyboard = {
       inline_keyboard: [[
         { text: '📖 Xem toàn bộ email', callback_data: `readid:${emailMeta.id}` },
-        { text: '🗑️ Xóa',              callback_data: `del:${emailMeta.id}:${to}` },
+        { text: '🗑️ Xóa',              callback_data: `del:${emailMeta.id}` },
       ]],
     };
 

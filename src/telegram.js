@@ -323,8 +323,7 @@ async function handleHelp(chatId) {
 
 async function handleDonate(chatId) {
   const qrUrl =
-    'https://img.vietqr.io/image/ICB-0842879198-compact2.png' +
-    '?accountName=NGUYEN%20CONG%20TUNG%20LAM&addInfo=Ung%20ho%20TempMail';
+    'https://img.vietqr.io/image/ICB-0842879198-compact_2.png'
 
   const caption =
     `☕ *Ủng hộ tác giả TempMail*\n\n` +

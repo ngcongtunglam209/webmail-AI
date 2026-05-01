@@ -12,50 +12,61 @@ const redis = new Redis({
 redis.on('error', (err) => console.error('[Redis] Error:', err.message));
 redis.on('connect', () => console.log('[Redis] Connected'));
 
-// Key helpers
-const inboxKey = (address) => `inbox:${address.toLowerCase()}`;
-const emailKey = (id) => `email:${id}`;
+const inboxKey  = (addr) => `inbox:${addr.toLowerCase()}`;
+const emailKey  = (id)   => `email:${id}`;
+const ttlKey    = (addr) => `inbox:ttl:${addr.toLowerCase()}`;
+const attKey    = (id, i)=> `att:${id}:${i}`;
 
 async function connect() {
   await redis.connect();
 }
 
-/**
- * Lưu email vào inbox
- * @returns {string} email id
- */
-async function saveEmail(to, parsed) {
+async function saveEmail(to, parsed, ttl = config.mail.ttl) {
   const address = to.toLowerCase();
-  const id = uuidv4();
-  const now = Date.now();
+  const id      = uuidv4();
+  const now     = Date.now();
+
+  const attachmentsMeta = (parsed.attachments || []).map((a, i) => ({
+    index: i,
+    filename:    a.filename    || `file_${i}`,
+    contentType: a.contentType || 'application/octet-stream',
+    size:        a.size        || 0,
+  }));
 
   const emailData = {
     id,
-    to: address,
-    from: parsed.from?.text || '',
-    subject: parsed.subject || '(no subject)',
-    text: parsed.text || '',
-    html: parsed.html || '',
-    date: parsed.date ? parsed.date.toISOString() : new Date().toISOString(),
-    receivedAt: now,
-    attachments: JSON.stringify(
-      (parsed.attachments || []).map(a => ({
-        filename: a.filename,
-        contentType: a.contentType,
-        size: a.size,
-      }))
-    ),
+    to:          address,
+    from:        parsed.from?.text || '',
+    subject:     parsed.subject    || '(no subject)',
+    text:        parsed.text       || '',
+    html:        parsed.html       || '',
+    date:        parsed.date ? parsed.date.toISOString() : new Date().toISOString(),
+    receivedAt:  now,
+    attachments: JSON.stringify(attachmentsMeta),
   };
 
   const pipeline = redis.pipeline();
 
-  // Lưu nội dung email
   pipeline.hset(emailKey(id), emailData);
-  pipeline.expire(emailKey(id), config.mail.ttl);
+  pipeline.expire(emailKey(id), ttl);
 
-  // Thêm vào inbox list (sorted by receivedAt)
   pipeline.zadd(inboxKey(address), now, id);
-  pipeline.expire(inboxKey(address), config.mail.ttl);
+  pipeline.expire(inboxKey(address), ttl);
+
+  // Lưu TTL của inbox để dùng khi refresh
+  pipeline.set(ttlKey(address), ttl);
+  pipeline.expire(ttlKey(address), ttl);
+
+  // Lưu nội dung attachment
+  (parsed.attachments || []).forEach((a, i) => {
+    const content = a.content ? a.content.toString('base64') : '';
+    pipeline.hset(attKey(id, i), {
+      filename:    a.filename    || `file_${i}`,
+      contentType: a.contentType || 'application/octet-stream',
+      content,
+    });
+    pipeline.expire(attKey(id, i), ttl);
+  });
 
   await pipeline.exec();
 
@@ -72,9 +83,6 @@ async function saveEmail(to, parsed) {
   return id;
 }
 
-/**
- * Lấy danh sách email trong inbox (mới nhất trước)
- */
 async function getInbox(address) {
   const ids = await redis.zrevrange(inboxKey(address.toLowerCase()), 0, -1);
   if (!ids.length) return [];
@@ -84,12 +92,13 @@ async function getInbox(address) {
       const data = await redis.hgetall(emailKey(id));
       if (!data || !data.id) return null;
       return {
-        id: data.id,
-        from: data.from,
-        subject: data.subject,
-        date: data.date,
-        receivedAt: parseInt(data.receivedAt),
-        hasHtml: !!data.html,
+        id:          data.id,
+        from:        data.from,
+        subject:     data.subject,
+        date:        data.date,
+        receivedAt:  parseInt(data.receivedAt),
+        hasHtml:     !!data.html,
+        attachments: JSON.parse(data.attachments || '[]'),
       };
     })
   );
@@ -97,33 +106,47 @@ async function getInbox(address) {
   return emails.filter(Boolean);
 }
 
-/**
- * Lấy nội dung 1 email
- */
 async function getEmail(id) {
   const data = await redis.hgetall(emailKey(id));
   if (!data || !data.id) return null;
-
   return {
     ...data,
-    receivedAt: parseInt(data.receivedAt),
+    receivedAt:  parseInt(data.receivedAt),
     attachments: JSON.parse(data.attachments || '[]'),
   };
 }
 
-/**
- * Xóa 1 email
- */
+async function getAttachment(emailId, index) {
+  const data = await redis.hgetall(attKey(emailId, index));
+  if (!data || !data.content) return null;
+  return data;
+}
+
 async function deleteEmail(id, address) {
+  const email = await getEmail(id);
+  if (email) {
+    const atts = JSON.parse(email.attachments || '[]');
+    if (atts.length) {
+      await redis.del(...atts.map((_, i) => attKey(id, i)));
+    }
+  }
   await redis.zrem(inboxKey(address.toLowerCase()), id);
   await redis.del(emailKey(id));
 }
 
-/**
- * Reset TTL khi người dùng còn active
- */
 async function refreshInbox(address) {
-  await redis.expire(inboxKey(address.toLowerCase()), config.mail.ttl);
+  const addr = address.toLowerCase();
+  const stored = await redis.get(ttlKey(addr));
+  const ttl = parseInt(stored) || config.mail.ttl;
+  await redis.expire(inboxKey(addr), ttl);
 }
 
-module.exports = { connect, saveEmail, getInbox, getEmail, deleteEmail, refreshInbox };
+async function getInboxTtl(address) {
+  const stored = await redis.get(ttlKey(address.toLowerCase()));
+  return parseInt(stored) || config.mail.ttl;
+}
+
+module.exports = {
+  connect, saveEmail, getInbox, getEmail,
+  getAttachment, deleteEmail, refreshInbox, getInboxTtl,
+};

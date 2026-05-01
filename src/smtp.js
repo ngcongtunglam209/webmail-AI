@@ -1,6 +1,6 @@
 const { SMTPServer } = require('smtp-server');
 const { simpleParser } = require('mailparser');
-const config = require('./config');
+const config  = require('./config');
 const storage = require('./storage');
 
 let onNewEmail = null;
@@ -11,30 +11,22 @@ function setNewEmailHandler(handler) {
 
 function createSMTPServer() {
   const server = new SMTPServer({
-    // Không cần auth vì chỉ nhận từ internet
-    authOptional: true,
+    authOptional:     true,
     disabledCommands: ['AUTH'],
+    size:             config.mail.maxSize,
 
-    // Giới hạn kích thước
-    size: config.mail.maxSize,
-
-    // Chấp nhận bất kỳ địa chỉ gửi nào
     onMailFrom(address, session, callback) {
       return callback();
     },
 
-    // Chỉ nhận mail đến các domain được phép
     onRcptTo(address, session, callback) {
       const domain = address.address.split('@')[1]?.toLowerCase();
-
       if (!config.domains.length || config.domains.includes(domain)) {
         return callback();
       }
-
       return callback(new Error(`Domain ${domain} not accepted`));
     },
 
-    // Xử lý nội dung email
     onData(stream, session, callback) {
       const recipients = session.envelope.rcptTo.map(r => r.address.toLowerCase());
 
@@ -46,15 +38,23 @@ function createSMTPServer() {
 
         try {
           for (const to of recipients) {
-            const id = await storage.saveEmail(to, parsed);
+            const ttl = await storage.getInboxTtl(to).catch(() => null);
+            const id  = await storage.saveEmail(to, parsed, ttl || undefined);
             console.log(`[SMTP] New email → ${to} (id: ${id})`);
 
             if (onNewEmail) {
               onNewEmail(to, {
                 id,
-                from: parsed.from?.text || '',
-                subject: parsed.subject || '(no subject)',
-                date: parsed.date?.toISOString() || new Date().toISOString(),
+                from:        parsed.from?.text || '',
+                subject:     parsed.subject    || '(no subject)',
+                date:        parsed.date?.toISOString() || new Date().toISOString(),
+                receivedAt:  Date.now(),
+                attachments: (parsed.attachments || []).map((a, i) => ({
+                  index:       i,
+                  filename:    a.filename    || `file_${i}`,
+                  contentType: a.contentType || 'application/octet-stream',
+                  size:        a.size        || 0,
+                })),
               });
             }
           }
@@ -76,11 +76,9 @@ function createSMTPServer() {
 
 function startSMTP() {
   const server = createSMTPServer();
-
   server.listen(config.smtpPort, '0.0.0.0', () => {
     console.log(`[SMTP] Listening on port ${config.smtpPort}`);
   });
-
   return server;
 }
 

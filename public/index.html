@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <!-- Toast container -->
   <div id="toastContainer"></div>
 
   <div class="page">
@@ -20,23 +19,36 @@
         <span class="logo-text">TempMail</span>
       </div>
 
+      <!-- Address card -->
       <div class="address-card">
         <div class="address-label">Địa chỉ của bạn</div>
         <div class="address-value" id="emailAddress">Đang tạo...</div>
+
         <div class="address-actions">
           <button class="btn btn-primary btn-full" id="copyBtn">
             <span class="btn-icon">⎘</span> Sao chép
           </button>
+          <button class="btn btn-ghost" id="qrBtn" title="Mã QR">⊞</button>
           <button class="btn btn-ghost" id="refreshBtn" title="Làm mới">↻</button>
           <button class="btn btn-ghost" id="newBtn" title="Địa chỉ mới">+</button>
         </div>
 
-        <!-- TTL progress bar -->
+        <!-- TTL selector + bar -->
+        <div class="ttl-row">
+          <span class="ttl-label">Hết hạn sau</span>
+          <select id="ttlSelect" class="ttl-select">
+            <option value="600">10 phút</option>
+            <option value="1800">30 phút</option>
+            <option value="3600" selected>1 giờ</option>
+            <option value="21600">6 giờ</option>
+            <option value="86400">24 giờ</option>
+          </select>
+        </div>
         <div class="ttl-bar">
           <div class="ttl-bar-track">
             <div class="ttl-bar-fill" id="ttlFill"></div>
           </div>
-          <div class="ttl-text" id="timerText">60:00</div>
+          <div class="ttl-text" id="timerText">--:--</div>
         </div>
       </div>
 
@@ -51,7 +63,12 @@
         <button class="btn btn-secondary btn-full" id="customBtn">Tạo địa chỉ này</button>
       </div>
 
-      <!-- Donate button -->
+      <!-- Address history -->
+      <div class="history-section" id="historySection" style="display:none">
+        <div class="custom-label">Đã dùng gần đây</div>
+        <div id="historyList" class="history-list"></div>
+      </div>
+
       <button class="btn-donate" id="donateBtn">
         <span>☕</span> Ủng hộ tác giả
       </button>
@@ -59,16 +76,16 @@
       <div class="sidebar-footer">
         <div class="status-dot" id="statusDot"></div>
         <span id="statusText">Đang kết nối...</span>
+        <button class="btn-notif" id="notifBtn" title="Bật thông báo">🔔</button>
       </div>
     </aside>
 
-    <!-- Main content -->
+    <!-- Main -->
     <main class="main">
       <div class="main-header">
         <h2 class="inbox-title">Hộp thư đến</h2>
         <span class="inbox-badge" id="emailCount">0</span>
       </div>
-
       <div id="emailList" class="email-list">
         <div class="empty-state">
           <div class="empty-icon">📭</div>
@@ -77,6 +94,19 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- QR modal -->
+  <div id="qrOverlay" class="modal-overlay hidden"></div>
+  <div id="qrModal" class="modal qr-modal hidden">
+    <div class="qr-modal-header">
+      <span>Quét để dùng trên điện thoại</span>
+      <button class="btn btn-ghost" id="closeQrBtn">✕</button>
+    </div>
+    <div class="qr-modal-body">
+      <img id="qrCodeImg" src="" alt="QR Code" class="qr-code-img" />
+      <div class="qr-address" id="qrAddress"></div>
+    </div>
   </div>
 
   <!-- Donate modal -->
@@ -89,17 +119,13 @@
       </div>
       <button class="btn btn-ghost" id="closeDonateBtn">✕</button>
     </div>
-
     <div class="donate-body">
       <div class="qr-wrap">
         <img
-          src="https://img.vietqr.io/image/ICB-0842879198-compact2.png?accountName=NGUYEN%20CONG%20TUNG%20LAM&addInfo=Ung%20ho%20TempMail"
-          alt="VietQR donate"
-          class="qr-img"
-          id="qrImg"
+          src="https://img.vietqr.io/image/ICB-0842879198-qr_only.png?accountName=NGUYEN%20CONG%20TUNG%20LAM&addInfo=Ung%20ho%20TempMail"
+          alt="VietQR donate" class="qr-img"
         />
       </div>
-
       <div class="bank-info">
         <div class="bank-row">
           <span class="bank-label">Ngân hàng</span>
@@ -108,7 +134,7 @@
         <div class="bank-row">
           <span class="bank-label">Số tài khoản</span>
           <div class="bank-stk">
-            <span class="bank-value" id="stkText">0842879198</span>
+            <span class="bank-value">0842879198</span>
             <button class="btn-copy-stk" id="copyStkBtn">Sao chép</button>
           </div>
         </div>
@@ -121,10 +147,7 @@
           <span class="bank-value bank-note">Ung ho TempMail</span>
         </div>
       </div>
-
-      <p class="donate-thanks">
-        Mọi khoản ủng hộ dù nhỏ đều giúp duy trì server và phát triển thêm tính năng mới. Cảm ơn bạn rất nhiều! 🙏
-      </p>
+      <p class="donate-thanks">Mọi khoản ủng hộ dù nhỏ đều giúp duy trì server và phát triển thêm tính năng mới. Cảm ơn bạn rất nhiều! 🙏</p>
     </div>
   </div>
 
@@ -145,6 +168,10 @@
         <button class="btn btn-ghost" id="closeModalBtn">✕</button>
       </div>
     </div>
+
+    <!-- Attachments bar -->
+    <div id="attachmentsBar" class="attachments-bar hidden"></div>
+
     <div class="modal-tabs">
       <button class="tab active" data-tab="html">HTML</button>
       <button class="tab" data-tab="text">Văn bản</button>

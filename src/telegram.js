@@ -405,7 +405,6 @@ async function notifyTelegram(to, emailMeta) {
           { text: '📖 Xem toàn bộ email', callback_data: `readid:${emailMeta.id}` },
           { text: '🗑️ Xóa',              callback_data: `del:${emailMeta.id}:${to}` },
         ]],
-        ...mainMenu().reply_markup,
       },
     }).catch(() => send(chatId, text, mainMenu()));
   } catch (err) {

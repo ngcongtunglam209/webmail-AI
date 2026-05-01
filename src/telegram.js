@@ -22,6 +22,7 @@ function mainMenu() {
         [{ text: '📥 Inbox' },          { text: '🔐 OTP mới nhất' }],
         [{ text: '📧 Địa chỉ của tôi' }, { text: '🆕 Địa chỉ mới'  }],
         [{ text: '⏱ Đổi thời hạn' },    { text: '❓ Hướng dẫn'     }],
+        [{ text: '☕ Ủng hộ tác giả' }],
       ],
       resize_keyboard:  true,
       persistent:       true,
@@ -76,6 +77,7 @@ function startTelegramBot() {
     { command: 'new',    description: '🆕 Tạo địa chỉ mới' },
     { command: 'ttl',    description: '⏱ Đổi thời hạn' },
     { command: 'help',   description: '❓ Hướng dẫn sử dụng' },
+    { command: 'donate', description: '☕ Ủng hộ tác giả' },
   ]).catch(() => {});
 
   bot.on('polling_error', err => console.error('[Telegram] Polling:', err.message));
@@ -91,8 +93,9 @@ function startTelegramBot() {
     if (text === '🔐 OTP mới nhất'   || text === '/otp')   return handleOTP(chatId);
     if (text === '📧 Địa chỉ của tôi'|| text === '/addr')  return handleAddr(chatId);
     if (text === '🆕 Địa chỉ mới'    || text === '/new')   return handleNew(chatId);
-    if (text === '⏱ Đổi thời hạn'   || text === '/ttl')   return handleTTL(chatId);
-    if (text === '❓ Hướng dẫn'      || text === '/help')  return handleHelp(chatId);
+    if (text === '⏱ Đổi thời hạn'   || text === '/ttl')    return handleTTL(chatId);
+    if (text === '❓ Hướng dẫn'      || text === '/help')   return handleHelp(chatId);
+    if (text === '☕ Ủng hộ tác giả' || text === '/donate') return handleDonate(chatId);
 
     if (text === '/start') return handleStart(chatId, msg.from?.first_name);
 
@@ -316,6 +319,29 @@ async function handleHelp(chatId) {
     `/del 2 — Xóa email thứ 2`,
     mainMenu()
   );
+}
+
+async function handleDonate(chatId) {
+  const qrUrl =
+    'https://img.vietqr.io/image/ICB-0842879198-compact2.png' +
+    '?accountName=NGUYEN%20CONG%20TUNG%20LAM&addInfo=Ung%20ho%20TempMail';
+
+  const caption =
+    `☕ *Ủng hộ tác giả TempMail*\n\n` +
+    `🏦 Ngân hàng: *VietinBank*\n` +
+    `💳 STK: \`0842879198\`\n` +
+    `👤 CTK: NGUYEN CONG TUNG LAM\n` +
+    `📝 Nội dung: \`Ung ho TempMail\`\n\n` +
+    `_Mọi khoản ủng hộ dù nhỏ đều giúp duy trì server\\. Cảm ơn bạn\\! 🙏_`;
+
+  await bot.sendPhoto(chatId, qrUrl, {
+    caption,
+    parse_mode: 'MarkdownV2',
+    reply_markup: mainMenu().reply_markup,
+  }).catch(() => {
+    // Fallback nếu không gửi được ảnh
+    send(chatId, caption, mainMenu());
+  });
 }
 
 function sendNoAddress(chatId) {

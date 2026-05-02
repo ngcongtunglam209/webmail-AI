@@ -20,6 +20,28 @@
   --sidebar-w:   300px;
 }
 
+/* ── Light mode ── */
+[data-theme="light"] {
+  --bg:        #f8fafc;
+  --surface:   #ffffff;
+  --surface2:  #f1f5f9;
+  --surface3:  #e2e8f0;
+  --border:    #e2e8f0;
+  --border2:   #cbd5e1;
+  --text:      #0f172a;
+  --text-muted:#64748b;
+  --text-dim:  #475569;
+  --accent-glow: rgba(59,130,246,.15);
+}
+
+[data-theme="light"] .email-item.unread {
+  background: rgba(59,130,246,.06);
+}
+[data-theme="light"] .email-item.unread:hover {
+  background: rgba(59,130,246,.12);
+}
+[data-theme="light"] #htmlFrame { background: #fff; }
+
 html, body { height: 100%; }
 
 body {
@@ -68,7 +90,19 @@ body {
   font-size: 16px;
 }
 
-.logo-text { font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
+.logo-text { font-size: 17px; font-weight: 700; letter-spacing: -.3px; flex: 1; }
+
+.btn-theme {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 6px;
+  transition: background .15s;
+  margin-left: auto;
+}
+.btn-theme:hover { background: var(--surface3); }
 
 /* ── Address card ── */
 .address-card {

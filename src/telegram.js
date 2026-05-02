@@ -246,6 +246,19 @@ async function handleAddr(chatId) {
 }
 
 async function handleNew(chatId) {
+  const r          = await redis();
+  const cooldownKey = `tg:cooldown:new:${chatId}`;
+  const onCooldown  = await r.get(cooldownKey);
+
+  if (onCooldown) {
+    const ttl = await r.ttl(cooldownKey);
+    return send(chatId,
+      `⏳ Vui lòng chờ *${ttl}s* trước khi tạo địa chỉ mới\\.`,
+      mainMenu()
+    );
+  }
+
+  await r.set(cooldownKey, 1, 'EX', 30); // 30 giây cooldown
   const addr = await createAddress(chatId);
   await send(chatId,
     `✅ *Địa chỉ mới đã tạo\\!*\n\n📧 \`${escMd(addr)}\`\n\n⏱ Hiệu lực: *1 giờ*`,

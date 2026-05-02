@@ -1,3 +1,9 @@
+// ── Theme ──
+(function() {
+  const saved = localStorage.getItem('tm_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+})();
+
 const socket = io();
 
 let currentAddress = null;
@@ -29,6 +35,7 @@ const donateBtn      = document.getElementById('donateBtn');
 const emailList      = document.getElementById('emailList');
 const emailCount     = document.getElementById('emailCount');
 const toastContainer = document.getElementById('toastContainer');
+const themeBtn       = document.getElementById('themeBtn');
 
 // Email modal
 const emailModal     = document.getElementById('emailModal');
@@ -120,6 +127,19 @@ notifBtn.addEventListener('click', async () => {
   await Notification.requestPermission();
   updateNotifBtn();
 });
+
+themeBtn.addEventListener('click', () => {
+  const cur  = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('tm_theme', next);
+  themeBtn.textContent = next === 'dark' ? '🌙' : '☀️';
+});
+
+// Áp dụng icon đúng khi load
+if (themeBtn) {
+  themeBtn.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '🌙' : '☀️';
+}
 
 donateBtn.addEventListener('click', () => {
   donateModal.classList.remove('hidden');

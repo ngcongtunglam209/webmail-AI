@@ -1,212 +1,182 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <title>TempMail — Hộp thư tạm thời miễn phí</title>
-  <meta name="description" content="Tạo địa chỉ email tạm thời miễn phí trong 1 giây. Nhận email ngay lập tức, không cần đăng ký, tự động xóa sau 1 giờ." />
-  <meta name="keywords" content="email tạm thời, temp mail, email ảo, disposable email, fake email, hộp thư tạm" />
+  <title>TempMail — Email tạm thời miễn phí</title>
+  <meta name="description" content="Tạo địa chỉ email tạm thời miễn phí trong 1 giây. Nhận email, lấy OTP, bảo vệ email thật của bạn." />
+  <meta name="keywords" content="email tạm thời, temp mail, email ảo, disposable email, fake email, otp" />
   <meta name="robots" content="index, follow" />
-
-  <!-- Open Graph -->
   <meta property="og:type"        content="website" />
-  <meta property="og:title"       content="TempMail — Hộp thư tạm thời miễn phí" />
-  <meta property="og:description" content="Tạo địa chỉ email tạm thời trong 1 giây. Không cần đăng ký, tự động xóa." />
-  <meta property="og:site_name"   content="TempMail" />
-
-  <!-- Twitter -->
+  <meta property="og:title"       content="TempMail — Email tạm thời miễn phí" />
+  <meta property="og:description" content="Tạo địa chỉ email tạm thời trong 1 giây. Nhận OTP tức thì, không cần đăng ký." />
   <meta name="twitter:card"        content="summary" />
-  <meta name="twitter:title"       content="TempMail — Hộp thư tạm thời miễn phí" />
-  <meta name="twitter:description" content="Tạo địa chỉ email tạm thời trong 1 giây. Không cần đăng ký." />
-
   <meta name="theme-color" content="#3b82f6" />
-
   <link rel="icon"     href="/favicon.svg" type="image/svg+xml" />
   <link rel="manifest" href="/manifest.json" />
-
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/landing.css" />
 </head>
 <body>
-  <div id="toastContainer"></div>
-
-  <div class="page">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="logo">
-        <div class="logo-icon">✉</div>
-        <span class="logo-text">TempMail</span>
-      </div>
-
-      <!-- Address card -->
-      <div class="address-card">
-        <div class="address-label">Địa chỉ của bạn</div>
-        <div class="address-value" id="emailAddress">Đang tạo...</div>
-
-        <div class="address-actions">
-          <button class="btn btn-primary btn-full" id="copyBtn">
-            <span class="btn-icon">⎘</span> Sao chép
-          </button>
-          <button class="btn btn-ghost" id="qrBtn" title="Mã QR">⊞</button>
-          <button class="btn btn-ghost" id="refreshBtn" title="Làm mới">↻</button>
-          <button class="btn btn-ghost" id="newBtn" title="Địa chỉ mới">+</button>
-        </div>
-
-        <!-- TTL selector + bar -->
-        <div class="ttl-row">
-          <span class="ttl-label">Hết hạn sau</span>
-          <select id="ttlSelect" class="ttl-select">
-            <option value="600">10 phút</option>
-            <option value="1800">30 phút</option>
-            <option value="3600" selected>1 giờ</option>
-            <option value="21600">6 giờ</option>
-            <option value="86400">24 giờ</option>
-          </select>
-        </div>
-        <div class="ttl-bar">
-          <div class="ttl-bar-track">
-            <div class="ttl-bar-fill" id="ttlFill"></div>
-          </div>
-          <div class="ttl-text" id="timerText">--:--</div>
-        </div>
-      </div>
-
-      <!-- Custom address -->
-      <div class="custom-section">
-        <div class="custom-label">Tùy chỉnh địa chỉ</div>
-        <div class="custom-row">
-          <input type="text" id="customUser" class="input-custom" placeholder="username" maxlength="50" />
-          <span class="at-sign">@</span>
-          <select id="domainSelect" class="select-domain"></select>
-        </div>
-        <button class="btn btn-secondary btn-full" id="customBtn">Tạo địa chỉ này</button>
-      </div>
-
-      <!-- Address history -->
-      <div class="history-section" id="historySection" style="display:none">
-        <div class="custom-label">Đã dùng gần đây</div>
-        <div id="historyList" class="history-list"></div>
-      </div>
-
-      <button class="btn-donate" id="donateBtn">
-        <span>☕</span> Ủng hộ tác giả
-      </button>
-
-      <div class="sidebar-footer">
-        <div class="status-dot" id="statusDot"></div>
-        <span id="statusText">Đang kết nối...</span>
-        <button class="btn-notif" id="notifBtn" title="Bật thông báo">🔔</button>
-      </div>
-    </aside>
-
-    <!-- Main -->
-    <main class="main">
-      <div class="main-header">
-        <h2 class="inbox-title">Hộp thư đến</h2>
-        <span class="inbox-badge" id="emailCount">0</span>
-      </div>
-      <div id="emailList" class="email-list">
-        <div class="empty-state">
-          <div class="empty-icon">📭</div>
-          <div class="empty-title">Chưa có email nào</div>
-          <div class="empty-desc">Sao chép địa chỉ và dùng để đăng ký dịch vụ.<br/>Email sẽ xuất hiện ở đây trong vài giây.</div>
-        </div>
-      </div>
-    </main>
-  </div>
-
-  <!-- QR modal -->
-  <div id="qrOverlay" class="modal-overlay hidden"></div>
-  <div id="qrModal" class="modal qr-modal hidden">
-    <div class="qr-modal-header">
-      <span>Quét để dùng trên điện thoại</span>
-      <button class="btn btn-ghost" id="closeQrBtn">✕</button>
-    </div>
-    <div class="qr-modal-body">
-      <img id="qrCodeImg" src="" alt="QR Code" class="qr-code-img" />
-      <div class="qr-address" id="qrAddress"></div>
-    </div>
-  </div>
-
-  <!-- Donate modal -->
-  <div id="donateOverlay" class="modal-overlay hidden"></div>
-  <div id="donateModal" class="modal donate-modal hidden">
-    <div class="donate-header">
-      <div>
-        <div class="donate-title">☕ Ủng hộ tác giả</div>
-        <div class="donate-subtitle">Cảm ơn bạn đã dùng TempMail!</div>
-      </div>
-      <button class="btn btn-ghost" id="closeDonateBtn">✕</button>
-    </div>
-    <div class="donate-body">
-      <div class="qr-wrap">
-        <img
-          src="https://img.vietqr.io/image/ICB-0842879198-compact_2.png"
-          alt="VietQR donate" class="qr-img"
-        />
-      </div>
-      <div class="bank-info">
-        <div class="bank-row">
-          <span class="bank-label">Ngân hàng</span>
-          <span class="bank-value">VietinBank</span>
-        </div>
-        <div class="bank-row">
-          <span class="bank-label">Số tài khoản</span>
-          <div class="bank-stk">
-            <span class="bank-value">0842879198</span>
-            <button class="btn-copy-stk" id="copyStkBtn">Sao chép</button>
-          </div>
-        </div>
-        <div class="bank-row">
-          <span class="bank-label">Chủ tài khoản</span>
-          <span class="bank-value">NGUYEN CONG TUNG LAM</span>
-        </div>
-        <div class="bank-row">
-          <span class="bank-label">Nội dung</span>
-          <span class="bank-value bank-note">Ung ho TempMail</span>
-        </div>
-      </div>
-      <p class="donate-thanks">Mọi khoản ủng hộ dù nhỏ đều giúp duy trì server và phát triển thêm tính năng mới. Cảm ơn bạn rất nhiều! 🙏</p>
-    </div>
-  </div>
-
-  <!-- Email modal -->
-  <div id="modalOverlay" class="modal-overlay hidden"></div>
-  <div id="emailModal" class="modal hidden">
-    <div class="modal-header">
-      <div class="modal-sender">
-        <div class="avatar" id="modalAvatar"></div>
-        <div class="modal-meta">
-          <div class="modal-subject" id="modalSubject"></div>
-          <div class="modal-from" id="modalFrom"></div>
-          <div class="modal-date" id="modalDate"></div>
-        </div>
-      </div>
-      <div class="modal-controls">
-        <button class="btn btn-danger" id="deleteEmailBtn">Xóa</button>
-        <button class="btn btn-ghost" id="closeModalBtn">✕</button>
+  <!-- Navbar -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">
+        <div class="nav-logo-icon">✉</div>
+        <span>TempMail</span>
+      </a>
+      <div class="nav-right">
+        <button class="btn-theme-land" id="themeBtn">🌙</button>
+        <a href="/app" class="nav-cta">Dùng ngay →</a>
       </div>
     </div>
+  </nav>
 
-    <!-- OTP bar -->
-    <div id="otpBar" class="otp-bar hidden"></div>
-
-    <!-- Attachments bar -->
-    <div id="attachmentsBar" class="attachments-bar hidden"></div>
-
-    <div class="modal-tabs">
-      <button class="tab active" data-tab="html">HTML</button>
-      <button class="tab" data-tab="text">Văn bản</button>
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-badge">✨ Miễn phí · Không đăng ký · Tức thì</div>
+    <h1 class="hero-title">
+      Email tạm thời<br/>
+      <span class="gradient-text">trong 1 giây</span>
+    </h1>
+    <p class="hero-desc">
+      Tạo địa chỉ email ảo ngay lập tức. Nhận mail, lấy OTP tự động,<br/>
+      bảo vệ email thật của bạn khỏi spam.
+    </p>
+    <div class="hero-actions">
+      <a href="/app" class="btn-hero-primary">Tạo email ngay</a>
+      <a href="#features" class="btn-hero-ghost">Tìm hiểu thêm ↓</a>
     </div>
-    <div class="modal-body">
-      <iframe id="htmlFrame" sandbox="allow-same-origin" title="Email content"></iframe>
-      <pre id="textContent" class="hidden"></pre>
-    </div>
-  </div>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="/app.js"></script>
+    <!-- Demo address pill -->
+    <div class="demo-pill">
+      <span class="demo-addr">ab3f92cd10@loveyuna.today</span>
+      <span class="demo-copied">Sao chép</span>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <div class="section-label">Tính năng</div>
+    <h2 class="section-title">Mọi thứ bạn cần</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Tức thì</h3>
+        <p>Tạo địa chỉ email trong chưa đầy 1 giây. Không cần đăng ký, không cần mật khẩu.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔐</div>
+        <h3>OTP tự động</h3>
+        <p>Tự động trích xuất mã OTP từ email. Chỉ cần 1 click để sao chép mã xác nhận.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <h3>Telegram Bot</h3>
+        <p>Nhận thông báo email và OTP ngay trên Telegram. Dùng mọi lúc mọi nơi.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🕒</div>
+        <h3>Tự động xóa</h3>
+        <p>Email tự xóa sau thời gian bạn chọn — 10 phút đến 24 giờ. Không lo lộ thông tin.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📎</div>
+        <h3>File đính kèm</h3>
+        <p>Nhận và tải về file đính kèm trực tiếp. Hỗ trợ mọi định dạng file.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌐</div>
+        <h3>Nhiều domain</h3>
+        <p>Chọn từ nhiều tên miền khác nhau để tránh bị chặn bởi các dịch vụ.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="how">
+    <div class="section-label">Cách dùng</div>
+    <h2 class="section-title">Chỉ 3 bước đơn giản</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Tạo địa chỉ</h3>
+        <p>Nhấn "Tạo email ngay" — địa chỉ email được tạo tự động trong 1 giây.</p>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Dùng để đăng ký</h3>
+        <p>Sao chép địa chỉ và dùng để đăng ký tài khoản hoặc nhận OTP từ bất kỳ dịch vụ nào.</p>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Nhận mail & OTP</h3>
+        <p>Email đến tức thì. OTP được tự động trích xuất — chỉ cần click để sao chép.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Telegram CTA -->
+  <section class="tg-section">
+    <div class="tg-card">
+      <div class="tg-icon">✈️</div>
+      <h2>Dùng trên Telegram</h2>
+      <p>Nhận thông báo email và OTP ngay trên Telegram Bot — không cần mở trình duyệt.</p>
+      <div class="tg-features">
+        <span>📥 Xem inbox</span>
+        <span>🔐 Nhận OTP</span>
+        <span>🆕 Tạo địa chỉ mới</span>
+        <span>🗑️ Xóa email</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <h2>Sẵn sàng bảo vệ email thật của bạn?</h2>
+    <p>Miễn phí hoàn toàn. Không cần tài khoản.</p>
+    <a href="/app" class="btn-hero-primary btn-lg">Tạo email ngay →</a>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-logo">
+        <div class="nav-logo-icon">✉</div>
+        <span>TempMail</span>
+      </div>
+      <div class="footer-links">
+        <a href="/app">Ứng dụng</a>
+        <a href="#features">Tính năng</a>
+      </div>
+      <div class="footer-copy">Made with ☕ — <a href="/app#donate">Ủng hộ tác giả</a></div>
+    </div>
+  </footer>
+
+  <script>
+    // Theme toggle
+    const saved = localStorage.getItem('tm_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    const btn = document.getElementById('themeBtn');
+    btn.textContent = saved === 'dark' ? '🌙' : '☀️';
+    btn.addEventListener('click', () => {
+      const cur = document.documentElement.getAttribute('data-theme');
+      const next = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('tm_theme', next);
+      btn.textContent = next === 'dark' ? '🌙' : '☀️';
+    });
+
+    // Demo pill click
+    document.querySelector('.demo-copied').addEventListener('click', () => {
+      const el = document.querySelector('.demo-copied');
+      navigator.clipboard.writeText(document.querySelector('.demo-addr').textContent);
+      el.textContent = '✓ Đã sao chép';
+      setTimeout(() => { el.textContent = 'Sao chép'; }, 2000);
+    });
+  </script>
 </body>
 </html>

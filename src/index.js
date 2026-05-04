@@ -57,6 +57,12 @@ async function main() {
     message: { error: 'Quá nhiều request inbox.' },
   }));
 
+  app.use('/api/email', rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+    message: { error: 'Quá nhiều request, thử lại sau.' },
+  }));
+
   app.use(express.static(path.join(__dirname, '../public')));
   app.use('/api', apiRouter);
 
@@ -70,8 +76,7 @@ async function main() {
 
   const httpServer = http.createServer(app);
   const io = new Server(httpServer, {
-    cors: { origin: '*' },
-    // Giới hạn số kết nối đồng thời
+    cors: { origin: process.env.APP_ORIGIN || `http://localhost:${config.port}` },
     perMessageDeflate: false,
   });
 
@@ -99,9 +104,26 @@ async function main() {
     console.log(`[HTTP] Listening on port ${config.port}`);
   });
 
-  startSMTP();
+  const smtpServer = startSMTP();
 
+  if (!config.domains.length) {
+    console.warn('[App] ⚠️  WARNING: ALLOWED_DOMAINS is not configured. SMTP server will reject all incoming mail.');
+  }
   console.log(`[App] Domains: ${config.domains.join(', ') || 'none configured'}`);
+
+  // Graceful shutdown
+  const shutdown = async (signal) => {
+    console.log(`[App] ${signal} received — shutting down gracefully...`);
+    await new Promise(resolve => httpServer.close(resolve));
+    await new Promise((resolve, reject) =>
+      smtpServer.close(err => (err ? reject(err) : resolve()))
+    );
+    await storage.disconnect();
+    console.log('[App] Goodbye.');
+    process.exit(0);
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT',  () => shutdown('SIGINT'));
 }
 
 main().catch((err) => {

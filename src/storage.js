@@ -8,6 +8,11 @@ const redis = new Redis({
   port: config.redis.port,
   password: config.redis.password,
   lazyConnect: true,
+  maxRetriesPerRequest: 3,
+  retryStrategy(times) {
+    if (times > 10) return null; // dừng retry sau 10 lần
+    return Math.min(times * 200, 2000); // back-off tối đa 2s
+  },
 });
 
 redis.on('error', (err) => console.error('[Redis] Error:', err.message));
@@ -79,8 +84,10 @@ async function saveEmail(to, parsed, ttl = config.mail.ttl) {
   if (count > config.mail.maxPerBox) {
     const oldest = await redis.zrange(inboxKey(address), 0, count - config.mail.maxPerBox - 1);
     if (oldest.length) {
-      await redis.zrem(inboxKey(address), ...oldest);
-      await redis.del(...oldest.map(emailKey));
+      const trimPl = redis.pipeline();
+      trimPl.zrem(inboxKey(address), ...oldest);
+      oldest.forEach(oid => trimPl.del(emailKey(oid)));
+      await trimPl.exec();
     }
   }
 
@@ -91,22 +98,23 @@ async function getInbox(address) {
   const ids = await redis.zrevrange(inboxKey(address.toLowerCase()), 0, -1);
   if (!ids.length) return [];
 
-  const emails = await Promise.all(
-    ids.map(async (id) => {
-      const data = await redis.hgetall(emailKey(id));
-      if (!data || !data.id) return null;
-      return {
-        id:          data.id,
-        from:        data.from,
-        subject:     data.subject,
-        date:        data.date,
-        receivedAt:  parseInt(data.receivedAt),
-        hasHtml:     !!data.html,
-        otp:         data.otp || null,
-        attachments: JSON.parse(data.attachments || '[]'),
-      };
-    })
-  );
+  const pipeline = redis.pipeline();
+  ids.forEach((id) => pipeline.hgetall(emailKey(id)));
+  const results = await pipeline.exec(); // [[err, val], ...]
+
+  const emails = results.map(([err, data]) => {
+    if (err || !data || !data.id) return null;
+    return {
+      id:          data.id,
+      from:        data.from,
+      subject:     data.subject,
+      date:        data.date,
+      receivedAt:  parseInt(data.receivedAt),
+      hasHtml:     !!data.html,
+      otp:         data.otp || null,
+      attachments: JSON.parse(data.attachments || '[]'),
+    };
+  });
 
   return emails.filter(Boolean);
 }
@@ -129,15 +137,16 @@ async function getAttachment(emailId, index) {
 
 async function deleteEmail(id, address) {
   const email = await getEmail(id);
-  if (email) {
-    let atts = [];
-    try { atts = JSON.parse(email.attachments || '[]'); } catch (_) {}
-    if (atts.length) {
-      await redis.del(...atts.map((_, i) => attKey(id, i)));
-    }
-  }
-  await redis.zrem(inboxKey(address.toLowerCase()), id);
-  await redis.del(emailKey(id));
+  const atts  = Array.isArray(email?.attachments) ? email.attachments : [];
+  const pl    = redis.pipeline();
+  pl.zrem(inboxKey(address.toLowerCase()), id);
+  pl.del(emailKey(id));
+  atts.forEach((_, i) => pl.del(attKey(id, i)));
+  await pl.exec();
+}
+
+async function disconnect() {
+  await redis.quit();
 }
 
 async function refreshInbox(address) {
@@ -155,7 +164,7 @@ async function getInboxTtl(address) {
 function _redis() { return redis; }
 
 module.exports = {
-  connect, saveEmail, getInbox, getEmail,
+  connect, disconnect, saveEmail, getInbox, getEmail,
   getAttachment, deleteEmail, refreshInbox, getInboxTtl,
   _redis,
 };

@@ -7,6 +7,20 @@ const router = express.Router();
 
 const VALID_TTLS = [600, 1800, 3600, 21600, 86400]; // 10m, 30m, 1h, 6h, 24h
 
+// Whitelist MIME types được phép trả về cho attachment
+const ALLOWED_CONTENT_TYPES = new Set([
+  'application/pdf',
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+  'text/plain', 'text/csv',
+  'application/zip', 'application/x-zip-compressed', 'application/octet-stream',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'audio/mpeg', 'audio/ogg', 'audio/wav',
+  'video/mp4', 'video/webm',
+]);
+
 function parseTtl(val) {
   const n = parseInt(val);
   return VALID_TTLS.includes(n) ? n : config.mail.ttl;
@@ -57,9 +71,9 @@ router.get('/inbox/:address', async (req, res) => {
     return res.status(400).json({ error: 'Địa chỉ không hợp lệ' });
   }
   try {
+    const ttl = await storage.getInboxTtl(address);
     await storage.refreshInbox(address);
     const emails = await storage.getInbox(address);
-    const ttl    = await storage.getInboxTtl(address);
     res.json({ emails, ttl });
   } catch (err) {
     console.error('[API] getInbox:', err.message);
@@ -67,11 +81,18 @@ router.get('/inbox/:address', async (req, res) => {
   }
 });
 
-// Nội dung email
+// Nội dung email (yêu cầu ?address= để xác minh ownership)
 router.get('/email/:id', async (req, res) => {
+  const { address } = req.query;
+  if (!address || !isValidAddress(address)) {
+    return res.status(400).json({ error: 'Thiếu hoặc sai địa chỉ email' });
+  }
   try {
     const email = await storage.getEmail(req.params.id);
     if (!email) return res.status(404).json({ error: 'Không tìm thấy email' });
+    if (email.to !== address.toLowerCase()) {
+      return res.status(403).json({ error: 'Không có quyền truy cập email này' });
+    }
     res.json({ email });
   } catch (err) {
     console.error('[API] getEmail:', err.message);
@@ -90,7 +111,11 @@ router.get('/attachment/:emailId/:index', async (req, res) => {
     if (!att) return res.status(404).json({ error: 'Attachment không tồn tại' });
 
     const buf = Buffer.from(att.content, 'base64');
-    res.setHeader('Content-Type', att.contentType);
+    const safeType = ALLOWED_CONTENT_TYPES.has(att.contentType)
+      ? att.contentType
+      : 'application/octet-stream';
+    res.setHeader('Content-Type', safeType);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(att.filename)}"`);
     res.setHeader('Content-Length', buf.length);
     res.send(buf);

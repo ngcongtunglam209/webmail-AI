@@ -21,8 +21,11 @@ function createSMTPServer() {
     },
 
     onRcptTo(address, session, callback) {
+      if (!config.domains.length) {
+        return callback(new Error('No domains configured — rejecting all recipients'));
+      }
       const domain = address.address.split('@')[1]?.toLowerCase();
-      if (!config.domains.length || config.domains.includes(domain)) {
+      if (config.domains.includes(domain)) {
         return callback();
       }
       return callback(new Error(`Domain ${domain} not accepted`));

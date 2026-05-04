@@ -291,7 +291,7 @@ function prependEmailItem(email, unread = false) {
 }
 
 async function openEmail(id, item) {
-  const res = await fetch(`/api/email/${id}`);
+  const res = await fetch(`/api/email/${id}?address=${encodeURIComponent(currentAddress)}`);
   if (!res.ok) return;
   const { email } = await res.json();
 
@@ -343,11 +343,43 @@ async function openEmail(id, item) {
     attachmentsBar.innerHTML = '';
   }
 
-  // Email content
-  const doc = htmlFrame.contentDocument || htmlFrame.contentWindow.document;
-  doc.open();
-  doc.write(email.html || `<div style="font-family:sans-serif;padding:24px;color:#333;line-height:1.7">${escHtml(email.text || '(không có nội dung)')}</div>`);
-  doc.close();
+  const rawHtml = email.html || `<div style="font-family:sans-serif;padding:24px;color:#333;line-height:1.7">${escHtml(email.text || '(không có nội dung)')}</div>`;
+  const doc = htmlFrame.contentDocument || htmlFrame.contentWindow?.document;
+
+  if (doc) {
+    // Inject DOMPurify from CDN into the iframe context, then sanitize in-place
+    doc.open();
+    doc.write(`<!DOCTYPE html><html><head>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"><\/script>
+</head><body><script>
+(function() {
+  var raw = ${JSON.stringify(rawHtml)};
+  var clean = (typeof DOMPurify !== 'undefined')
+    ? DOMPurify.sanitize(raw, { FORCE_BODY: true })
+    : raw.replace(/<script[\\s\\S]*?<\\/script>/gi, '')
+         .replace(/\\ on\\w+\\s*=/gi, ' data-removed=');
+  document.open();
+  document.write(clean);
+  document.close();
+})();
+<\/script></body></html>`);
+    doc.close();
+  } else {
+    // srcdoc fallback: sanitize with inline DOMPurify via a data URI approach
+    const purifyScript = 'https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js';
+    htmlFrame.srcdoc = `<!DOCTYPE html><html><head>
+<script src="${purifyScript}"><\/script>
+</head><body><script>
+(function() {
+  var raw = ${JSON.stringify(rawHtml)};
+  var clean = (typeof DOMPurify !== 'undefined')
+    ? DOMPurify.sanitize(raw, { FORCE_BODY: true })
+    : raw.replace(/<script[\\s\\S]*?<\\/script>/gi, '')
+         .replace(/\\ on\\w+\\s*=/gi, ' data-removed=');
+  document.body.innerHTML = clean;
+})();
+<\/script></body></html>`;
+  }
 
   textContent.textContent = email.text || '(không có nội dung text)';
 

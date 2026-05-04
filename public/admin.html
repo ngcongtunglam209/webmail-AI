@@ -94,7 +94,7 @@ code { font-family: 'Consolas', monospace; font-size: 12px; background: rgba(255
 .ttl-fill.critical { background: var(--danger); }
 
 /* Modal */
-#modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; }
+#modal { display: none; position: fixed; inset: 0; z-index: 50; align-items: center; justify-content: center; padding: 20px; }
 .modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.65); }
 .modal-box { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 860px; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden; }
 .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
@@ -176,7 +176,7 @@ code { font-family: 'Consolas', monospace; font-size: 12px; background: rgba(255
 </div>
 
 <!-- Inbox detail modal -->
-<div id="modal" hidden>
+<div id="modal">
   <div class="modal-overlay" onclick="closeModal()"></div>
   <div class="modal-box">
     <div class="modal-header">
@@ -260,12 +260,12 @@ function doLogout() {
   sessionStorage.removeItem('adm_s');
   secret = '';
   document.getElementById('dashboard').hidden = true;
-  document.getElementById('login').hidden = false;
+  document.getElementById('login').style.display = 'flex';
   document.getElementById('secret-input').value = '';
 }
 
 function showDashboard() {
-  document.getElementById('login').hidden = true;
+  document.getElementById('login').style.display = 'none';
   document.getElementById('dashboard').hidden = false;
   refreshAll();
 }
@@ -387,10 +387,10 @@ async function deleteInbox(address) {
 function openModal(title, content) {
   document.getElementById('modal-title').textContent = title;
   document.getElementById('modal-body').innerHTML = content;
-  document.getElementById('modal').hidden = false;
+  document.getElementById('modal').style.display = 'flex';
 }
 
-function closeModal() { document.getElementById('modal').hidden = true; }
+function closeModal() { document.getElementById('modal').style.display = 'none'; }
 
 function switchTab(tab) {
   currentTab = tab;

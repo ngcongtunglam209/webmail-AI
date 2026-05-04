@@ -619,3 +619,108 @@ function restoreCurrentAddress() {
     return false;
   }
 }
+
+// ── API Key Management ──
+const apiBtn       = document.getElementById('apiBtn');
+const apiModal     = document.getElementById('apiModal');
+const apiOverlay   = document.getElementById('apiOverlay');
+const closeApiBtn  = document.getElementById('closeApiBtn');
+const createApiKeyBtn = document.getElementById('createApiKeyBtn');
+const apiKeyLabel  = document.getElementById('apiKeyLabel');
+const apiKeyList   = document.getElementById('apiKeyList');
+
+function getStoredKeys() {
+  try { return JSON.parse(localStorage.getItem('tm_apikeys') || '[]'); } catch { return []; }
+}
+function saveStoredKeys(keys) {
+  localStorage.setItem('tm_apikeys', JSON.stringify(keys));
+}
+
+function renderApiKeys() {
+  const keys = getStoredKeys();
+  if (!keys.length) {
+    apiKeyList.innerHTML = '<div class="api-empty">Chưa có API key nào. Nhấn "+ Tạo key" để bắt đầu.</div>';
+    return;
+  }
+  apiKeyList.innerHTML = keys.map(k => `
+    <div class="api-key-item" data-key="${escHtml(k.key)}">
+      <div class="api-key-top">
+        <div>
+          <div class="api-key-label">${escHtml(k.label || 'Không tên')}</div>
+          <div class="api-key-meta">Tạo lúc ${new Date(k.createdAt).toLocaleString('vi-VN')}</div>
+        </div>
+        <div class="api-key-actions">
+          <button class="btn-revoke-key" data-key="${escHtml(k.key)}">Thu hồi</button>
+        </div>
+      </div>
+      <div class="api-key-value">
+        <span class="api-key-str">${escHtml(k.key)}</span>
+        <button class="btn-copy-key" data-copy="${escHtml(k.key)}">Sao chép</button>
+      </div>
+    </div>
+  `).join('');
+
+  apiKeyList.querySelectorAll('.btn-copy-key').forEach(btn => {
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(btn.dataset.copy);
+      btn.textContent = '✓ Đã sao chép';
+      setTimeout(() => btn.textContent = 'Sao chép', 2000);
+    });
+  });
+
+  apiKeyList.querySelectorAll('.btn-revoke-key').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Thu hồi key này? Mọi request dùng key sẽ bị từ chối.')) return;
+      const key = btn.dataset.key;
+      try {
+        await fetch(`/api/keys/${encodeURIComponent(key)}`, { method: 'DELETE' });
+        saveStoredKeys(getStoredKeys().filter(k => k.key !== key));
+        renderApiKeys();
+        showToast('🗑️ Đã thu hồi', 'API key đã bị xóa khỏi hệ thống.');
+      } catch {
+        showToast('❌ Lỗi', 'Không thể thu hồi key, thử lại sau.');
+      }
+    });
+  });
+}
+
+apiBtn.addEventListener('click', () => {
+  renderApiKeys();
+  apiModal.classList.remove('hidden');
+  apiOverlay.classList.remove('hidden');
+});
+
+function closeApiModal() {
+  apiModal.classList.add('hidden');
+  apiOverlay.classList.add('hidden');
+}
+closeApiBtn.addEventListener('click', closeApiModal);
+apiOverlay.addEventListener('click', closeApiModal);
+
+createApiKeyBtn.addEventListener('click', async () => {
+  const label = apiKeyLabel.value.trim();
+  createApiKeyBtn.disabled = true;
+  createApiKeyBtn.textContent = 'Đang tạo...';
+  try {
+    const res = await fetch('/api/keys', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ label }),
+    });
+    if (!res.ok) throw new Error('Server error');
+    const data = await res.json();
+    const keys = getStoredKeys();
+    keys.unshift({ key: data.key, label: data.label, createdAt: data.createdAt });
+    saveStoredKeys(keys);
+    apiKeyLabel.value = '';
+    renderApiKeys();
+    showToast('🔑 Key đã tạo', 'Sao chép key và lưu cẩn thận — không thể xem lại!');
+  } catch {
+    showToast('❌ Lỗi', 'Không thể tạo API key, thử lại sau.');
+  } finally {
+    createApiKeyBtn.disabled = false;
+    createApiKeyBtn.textContent = '+ Tạo key';
+  }
+});
+
+apiKeyLabel.addEventListener('keydown', e => { if (e.key === 'Enter') createApiKeyBtn.click(); });

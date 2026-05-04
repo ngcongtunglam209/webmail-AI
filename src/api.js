@@ -140,4 +140,35 @@ router.delete('/email/:id', async (req, res) => {
   }
 });
 
+// ── API Key management ──
+
+// Tạo API key mới
+router.post('/keys', async (req, res) => {
+  const label = (req.body?.label || '').toString().slice(0, 60);
+  try {
+    const key = await storage.createApiKey(label);
+    res.status(201).json({ key, label, createdAt: Date.now() });
+  } catch (err) {
+    console.error('[API] createApiKey:', err.message);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
+// Lấy thông tin API key
+router.get('/keys/:key', async (req, res) => {
+  const data = await storage.getApiKey(req.params.key);
+  if (!data) return res.status(404).json({ error: 'Key not found or revoked' });
+  res.json(data);
+});
+
+// Xóa API key
+router.delete('/keys/:key', async (req, res) => {
+  try {
+    await storage.deleteApiKey(req.params.key);
+    res.json({ deleted: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
 module.exports = router;

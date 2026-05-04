@@ -1,4 +1,5 @@
-const Redis = require('ioredis');
+const Redis  = require('ioredis');
+const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const config = require('./config');
 const { extractOTP } = require('./otp');
@@ -161,10 +162,58 @@ async function getInboxTtl(address) {
   return parseInt(stored) || config.mail.ttl;
 }
 
+// ── API Key management ──
+const AK_LIMIT = 200; // req/hour per key
+
+async function createApiKey(label = '') {
+  const key  = 'tm_' + crypto.randomBytes(16).toString('hex');
+  await redis.hset(`apikey:${key}`, {
+    label:        label.toString().slice(0, 60),
+    createdAt:    Date.now().toString(),
+    requestCount: '0',
+  });
+  return key;
+}
+
+async function getApiKey(key) {
+  const data = await redis.hgetall(`apikey:${key}`);
+  if (!data || !data.createdAt) return null;
+  return {
+    key,
+    label:        data.label || '',
+    createdAt:    parseInt(data.createdAt),
+    requestCount: parseInt(data.requestCount) || 0,
+  };
+}
+
+async function deleteApiKey(key) {
+  await redis.del(`apikey:${key}`);
+}
+
+async function checkAndIncrementRateLimit(key) {
+  const hour  = Math.floor(Date.now() / 3_600_000);
+  const rlKey = `apikey:rl:${key}:${hour}`;
+  const pl    = redis.pipeline();
+  pl.incr(rlKey);
+  pl.expire(rlKey, 7200);
+  const results = await pl.exec();
+  const count   = results[0][1];
+  // increment total usage (fire-and-forget)
+  redis.hincrby(`apikey:${key}`, 'requestCount', 1).catch(() => {});
+  return {
+    allowed:   count <= AK_LIMIT,
+    count,
+    remaining: Math.max(0, AK_LIMIT - count),
+    resetAt:   (hour + 1) * 3600,
+    limit:     AK_LIMIT,
+  };
+}
+
 function _redis() { return redis; }
 
 module.exports = {
   connect, disconnect, saveEmail, getInbox, getEmail,
   getAttachment, deleteEmail, refreshInbox, getInboxTtl,
+  createApiKey, getApiKey, deleteApiKey, checkAndIncrementRateLimit,
   _redis,
 };

@@ -73,6 +73,7 @@
 
       <!-- Donate -->
       <button class="btn-donate" id="donateBtn"><span>☕</span> Ủng hộ tác giả</button>
+      <button class="btn-api" id="apiBtn"><span>🔑</span> API Keys</button>
 
       <!-- Footer -->
       <div class="sidebar-footer">
@@ -163,6 +164,32 @@
     <div class="modal-body">
       <iframe id="htmlFrame" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" title="Email content"></iframe>
       <pre id="textContent" class="hidden"></pre>
+    </div>
+  </div>
+
+  <!-- API Key modal -->
+  <div id="apiOverlay" class="modal-overlay hidden"></div>
+  <div id="apiModal" class="modal api-modal hidden">
+    <div class="modal-header">
+      <div class="modal-meta">
+        <div class="modal-subject">🔑 API Keys</div>
+        <div class="modal-from">Quản lý các Developer API key của bạn</div>
+      </div>
+      <div class="modal-controls">
+        <a href="/docs" target="_blank" class="btn btn-secondary">Docs ↗</a>
+        <button class="btn btn-ghost" id="closeApiBtn">✕</button>
+      </div>
+    </div>
+    <div class="api-modal-body">
+      <div class="api-create-row">
+        <input type="text" id="apiKeyLabel" placeholder="Tên key (ví dụ: My App)" class="input-custom" maxlength="60" style="flex:1" />
+        <button class="btn btn-primary" id="createApiKeyBtn">+ Tạo key</button>
+      </div>
+      <div id="apiKeyList" class="api-key-list"></div>
+      <div class="api-usage-note">
+        Rate limit: <strong>200 req/giờ</strong> mỗi key &mdash;
+        <a href="/docs" target="_blank">Xem tài liệu API ↗</a>
+      </div>
     </div>
   </div>
 

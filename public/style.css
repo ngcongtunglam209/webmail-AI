@@ -259,6 +259,61 @@ body::before {
   box-shadow:0 0 16px rgba(245,158,11,.12);
 }
 
+/* ── API button ── */
+.btn-api {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  width:100%; padding:10px;
+  background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(139,92,246,.06));
+  border:1px solid rgba(99,102,241,.2);
+  border-radius:var(--radius); color:#a5b4fc;
+  font-family:inherit; font-size:13px; font-weight:500; cursor:pointer;
+  transition:all .2s;
+}
+.btn-api:hover {
+  background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(139,92,246,.1));
+  border-color:rgba(99,102,241,.4);
+  box-shadow:0 0 16px rgba(99,102,241,.12);
+}
+
+/* ── API Key modal ── */
+.api-modal { width:min(600px,calc(100vw - 32px)); }
+.api-modal-body { padding:20px; display:flex; flex-direction:column; gap:14px; }
+.api-create-row { display:flex; gap:8px; }
+.api-key-list { display:flex; flex-direction:column; gap:8px; min-height:40px; }
+.api-key-item {
+  display:flex; flex-direction:column; gap:8px;
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:var(--radius); padding:12px 14px;
+}
+.api-key-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.api-key-label { font-size:13px; font-weight:600; }
+.api-key-meta { font-size:11px; color:var(--text-muted); }
+.api-key-actions { display:flex; gap:6px; flex-shrink:0; }
+.api-key-value {
+  font-family:'Courier New',monospace; font-size:12px;
+  background:var(--surface3); border:1px solid var(--border2);
+  border-radius:7px; padding:7px 10px; color:var(--accent);
+  display:flex; align-items:center; gap:8px; word-break:break-all;
+}
+.api-key-str { flex:1; }
+.btn-copy-key {
+  background:var(--accent); color:#fff; border:none;
+  border-radius:6px; padding:3px 10px; font-size:11px;
+  font-family:inherit; cursor:pointer; white-space:nowrap;
+  transition:all .15s; flex-shrink:0;
+}
+.btn-copy-key:hover { filter:brightness(1.1); }
+.btn-revoke-key {
+  background:rgba(239,68,68,.1); color:var(--danger);
+  border:1px solid rgba(239,68,68,.2);
+  border-radius:7px; padding:5px 10px; font-size:12px;
+  font-family:inherit; cursor:pointer; transition:all .15s;
+}
+.btn-revoke-key:hover { background:rgba(239,68,68,.2); }
+.api-empty { font-size:13px; color:var(--text-muted); text-align:center; padding:20px 0; }
+.api-usage-note { font-size:12px; color:var(--text-muted); text-align:center; }
+.api-usage-note a { color:var(--accent); }
+
 /* ── Main ── */
 .main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
 .main-header {

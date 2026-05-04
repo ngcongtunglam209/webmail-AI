@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TempMail API Docs</title>
+  <meta name="description" content="Tài liệu Developer API TempMail — tích hợp email tạm thời vào ứng dụng của bạn." />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/docs.css" />
+</head>
+<body>
+  <!-- Nav -->
+  <nav class="docs-nav">
+    <div class="docs-nav-inner">
+      <a href="/" class="docs-logo">
+        <div class="docs-logo-icon">✉</div>
+        <span>TempMail</span>
+        <span class="docs-logo-sep">/</span>
+        <span class="docs-logo-sub">API Docs</span>
+      </a>
+      <div class="docs-nav-right">
+        <a href="/app" class="docs-nav-link">App</a>
+        <a href="/app" class="docs-nav-cta" id="openAppBtn">Lấy API Key →</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="docs-layout">
+    <!-- Sidebar -->
+    <aside class="docs-sidebar">
+      <div class="docs-sidebar-section">
+        <div class="docs-sidebar-title">Bắt đầu</div>
+        <a href="#intro"         class="docs-sidebar-link active">Giới thiệu</a>
+        <a href="#auth"          class="docs-sidebar-link">Xác thực</a>
+        <a href="#errors"        class="docs-sidebar-link">Lỗi & Mã lỗi</a>
+        <a href="#rate-limit"    class="docs-sidebar-link">Rate Limit</a>
+      </div>
+      <div class="docs-sidebar-section">
+        <div class="docs-sidebar-title">Endpoints</div>
+        <a href="#ep-me"         class="docs-sidebar-link"><span class="badge badge-get">GET</span> /v1/me</a>
+        <a href="#ep-address"    class="docs-sidebar-link"><span class="badge badge-get">GET</span> /v1/address</a>
+        <a href="#ep-inbox"      class="docs-sidebar-link"><span class="badge badge-get">GET</span> /v1/inbox/:address</a>
+        <a href="#ep-email-get"  class="docs-sidebar-link"><span class="badge badge-get">GET</span> /v1/email/:id</a>
+        <a href="#ep-email-del"  class="docs-sidebar-link"><span class="badge badge-del">DEL</span> /v1/email/:id</a>
+      </div>
+      <div class="docs-sidebar-section">
+        <div class="docs-sidebar-title">Quản lý Key</div>
+        <a href="#ep-key-create" class="docs-sidebar-link"><span class="badge badge-post">POST</span> /api/keys</a>
+        <a href="#ep-key-get"    class="docs-sidebar-link"><span class="badge badge-get">GET</span> /api/keys/:key</a>
+        <a href="#ep-key-del"    class="docs-sidebar-link"><span class="badge badge-del">DEL</span> /api/keys/:key</a>
+      </div>
+    </aside>
+
+    <!-- Content -->
+    <main class="docs-content">
+
+      <!-- Intro -->
+      <section id="intro" class="docs-section">
+        <h1 class="docs-h1">TempMail Developer API</h1>
+        <p class="docs-lead">Tích hợp email tạm thời vào ứng dụng của bạn trong vài phút. Tạo địa chỉ, đọc email, lấy OTP — tất cả qua REST API đơn giản.</p>
+        <div class="docs-info-cards">
+          <div class="docs-info-card">
+            <div class="docs-info-icon">🔑</div>
+            <div>
+              <div class="docs-info-title">API Key</div>
+              <div class="docs-info-desc">Mọi request cần header <code>Authorization: Bearer &lt;key&gt;</code></div>
+            </div>
+          </div>
+          <div class="docs-info-card">
+            <div class="docs-info-icon">📦</div>
+            <div>
+              <div class="docs-info-title">Base URL</div>
+              <div class="docs-info-desc"><code id="baseUrlDisplay">https://yourdomain.com</code></div>
+            </div>
+          </div>
+          <div class="docs-info-card">
+            <div class="docs-info-icon">⚡</div>
+            <div>
+              <div class="docs-info-title">Rate Limit</div>
+              <div class="docs-info-desc">200 requests / giờ per API key</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Auth -->
+      <section id="auth" class="docs-section">
+        <h2 class="docs-h2">Xác thực</h2>
+        <p>Tất cả endpoint <code>/v1/*</code> yêu cầu API key trong header:</p>
+        <div class="code-block">
+          <div class="code-block-header"><span>HTTP Header</span><button class="copy-btn" data-copy="Authorization: Bearer tm_your_api_key_here">Copy</button></div>
+          <pre>Authorization: Bearer tm_your_api_key_here</pre>
+        </div>
+        <p>Để lấy API key, vào <a href="/app" class="docs-link">ứng dụng TempMail</a> → nút <strong>API</strong> trên sidebar.</p>
+      </section>
+
+      <!-- Errors -->
+      <section id="errors" class="docs-section">
+        <h2 class="docs-h2">Lỗi & Mã lỗi</h2>
+        <p>Mọi response lỗi có format:</p>
+        <div class="code-block">
+          <div class="code-block-header"><span>JSON</span></div>
+          <pre>{
+  "ok": false,
+  "error": "Mô tả lỗi",
+  "code": "ERROR_CODE"
+}</pre>
+        </div>
+        <table class="docs-table">
+          <thead><tr><th>HTTP</th><th>Code</th><th>Mô tả</th></tr></thead>
+          <tbody>
+            <tr><td><span class="status-badge s401">401</span></td><td><code>UNAUTHORIZED</code></td><td>Thiếu Authorization header</td></tr>
+            <tr><td><span class="status-badge s401">401</span></td><td><code>INVALID_KEY</code></td><td>API key không hợp lệ hoặc đã bị xóa</td></tr>
+            <tr><td><span class="status-badge s400">400</span></td><td><code>INVALID_ADDRESS</code></td><td>Địa chỉ email không hợp lệ</td></tr>
+            <tr><td><span class="status-badge s403">403</span></td><td><code>FORBIDDEN</code></td><td>Email không thuộc địa chỉ yêu cầu</td></tr>
+            <tr><td><span class="status-badge s404">404</span></td><td><code>NOT_FOUND</code></td><td>Email không tồn tại</td></tr>
+            <tr><td><span class="status-badge s429">429</span></td><td><code>RATE_LIMITED</code></td><td>Vượt quá 200 req/giờ</td></tr>
+            <tr><td><span class="status-badge s500">500</span></td><td><code>INTERNAL</code></td><td>Lỗi server</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Rate Limit -->
+      <section id="rate-limit" class="docs-section">
+        <h2 class="docs-h2">Rate Limit</h2>
+        <p>Mỗi API key được phép <strong>200 requests/giờ</strong>. Thông tin rate limit trả về trong header mỗi response:</p>
+        <div class="code-block">
+          <div class="code-block-header"><span>Response Headers</span></div>
+          <pre>X-RateLimit-Limit: 200
+X-RateLimit-Remaining: 187
+X-RateLimit-Reset: 1746363600</pre>
+        </div>
+      </section>
+
+      <div class="docs-divider"></div>
+      <h2 class="docs-h2" style="margin-bottom:4px">Developer Endpoints</h2>
+      <p style="color:var(--text-muted);margin-bottom:32px">Tất cả cần <code>Authorization: Bearer &lt;key&gt;</code></p>
+
+      <!-- GET /v1/me -->
+      <section id="ep-me" class="docs-section endpoint-section">
+        <div class="endpoint-header">
+          <span class="badge badge-get lg">GET</span>
+          <span class="endpoint-path">/v1/me</span>
+        </div>
+        <p>Trả về thông tin API key hiện tại và rate limit.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span>cURL</span><button class="copy-btn" data-copy='curl -H "Authorization: Bearer tm_your_key" https://yourdomain.com/v1/me'>Copy</button></div>
+          <pre>curl -H "Authorization: Bearer tm_your_key" \
+     https://yourdomain.com/v1/me</pre>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span>Response 200</span></div>
+          <pre>{
+  "ok": true,
+  "data": {
+    "key": "tm_a3f9b2c1...",
+    "label": "My App",
+    "createdAt": 1746300000000,
+    "requestCount": 13,
+    "rateLimit": {
+      "limit": 200,
+      "remaining": 187,
+      "resetAt": 1746363600
+    }
+  }
+}</pre>
+        </div>
+      </section>
+
+      <!-- GET /v1/address -->
+      <section id="ep-address" class="docs-section endpoint-section">
+        <div class="endpoint-header">
+          <span class="badge badge-get lg">GET</span>
+          <span class="endpoint-path">/v1/address</span>
+        </div>
+        <p>Tạo một địa chỉ email tạm thời mới.</p>
+        <div class="params-table">
+          <div class="params-title">Query Parameters</div>
+          <table class="docs-table"><thead><tr><th>Param</th><th>Type</th><th>Mặc định</th><th>Mô tả</th></tr></thead>
+          <tbody><tr><td><code>ttl</code></td><td>integer</td><td>3600</td><td>Thời gian sống (giây): 600, 1800, 3600, 21600, 86400</td></tr></tbody></table>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span>cURL</span><button class="copy-btn" data-copy='curl -H "Authorization: Bearer tm_your_key" "https://yourdomain.com/v1/address?ttl=1800"'>Copy</button></div>
+          <pre>curl -H "Authorization: Bearer tm_your_key" \
+     "https://yourdomain.com/v1/address?ttl=1800"</pre>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span>Response 200</span></div>
+          <pre>{
+  "ok": true,
+  "data": {
+    "address": "ab3f9c@yourdomain.com",
+    "ttl": 1800,
+    "domain": "yourdomain.com",
+    "expiresAt": 1746301800
+  }
+}</pre>
+        </div>
+      </section>
+
+      <!-- GET /v1/inbox/:address -->
+      <section id="ep-inbox" class="docs-section endpoint-section">
+        <div class="endpoint-header">
+          <span class="badge badge-get lg">GET</span>
+          <span class="endpoint-path">/v1/inbox/:address</span>
+        </div>
+        <p>Lấy danh sách email trong inbox của địa chỉ. Tự động làm mới TTL.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span>cURL</span><button class="copy-btn" data-copy='curl -H "Authorization: Bearer tm_your_key" https://yourdomain.com/v1/inbox/ab3f9c@yourdomain.com'>Copy</button></div>
+          <pre>curl -H "Authorization: Bearer tm_your_key" \
+     https://yourdomain.com/v1/inbox/ab3f9c@yourdomain.com</pre>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span>Response 200</span></div>
+          <pre>{
+  "ok": true,
+  "data": {
+    "address": "ab3f9c@yourdomain.com",
+    "count": 1,
+    "emails": [
+      {
+        "id": "uuid-...",
+        "from": "noreply@service.com",
+        "subject": "Mã xác nhận của bạn",
+        "date": "2025-05-04T10:00:00Z",
+        "receivedAt": 1746300000000,
+        "hasHtml": true,
+        "otp": "382910",
+        "attachments": []
+      }
+    ]
+  }
+}</pre>
+        </div>
+      </section>
+
+      <!-- GET /v1/email/:id -->
+      <section id="ep-email-get" class="docs-section endpoint-section">
+        <div class="endpoint-header">
+          <span class="badge badge-get lg">GET</span>
+          <span class="endpoint-path">/v1/email/:id</span>
+        </div>
+        <p>Lấy nội dung đầy đủ của email (HTML, text, attachments).</p>
+        <div class="params-table">
+          <div class="params-title">Query Parameters</div>
+          <table class="docs-table"><thead><tr><th>Param</th><th>Bắt buộc</th><th>Mô tả</th></tr></thead>
+          <tbody><tr><td><code>address</code></td><td>✓</td><td>Địa chỉ nhận email (để xác minh ownership)</td></tr></tbody></table>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span>cURL</span><button class="copy-btn" data-copy='curl -H "Authorization: Bearer tm_your_key" "https://yourdomain.com/v1/email/uuid?address=ab3f9c@yourdomain.com"'>Copy</button></div>
+          <pre>curl -H "Authorization: Bearer tm_your_key" \
+     "https://yourdomain.com/v1/email/uuid?address=ab3f9c@yourdomain.com"</pre>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span>Response 200</span></div>
+          <pre>{
+  "ok": true,
+  "data": {
+    "email": {
+      "id": "uuid-...",
+      "from": "noreply@service.com",
+      "to": "ab3f9c@yourdomain.com",
+      "subject": "Mã xác nhận",
+      "date": "2025-05-04T10:00:00Z",
+      "receivedAt": 1746300000000,
+      "text": "Mã của bạn là: 382910",
+      "html": "&lt;p&gt;Mã của bạn là: &lt;b&gt;382910&lt;/b&gt;&lt;/p&gt;",
+      "otp": "382910",
+      "attachments": []
+    }
+  }
+}</pre>
+        </div>
+      </section>
+
+      <!-- DELETE /v1/email/:id -->
+      <section id="ep-email-del" class="docs-section endpoint-section">
+        <div class="endpoint-header">
+          <span class="badge badge-del lg">DELETE</span>
+          <span class="endpoint-path">/v1/email/:id</span>
+        </div>
+        <p>Xóa email khỏi inbox.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span>cURL</span><button class="copy-btn" data-copy='curl -X DELETE -H "Authorization: Bearer tm_your_key" "https://yourdomain.com/v1/email/uuid?address=ab3f9c@yourdomain.com"'>Copy</button></div>
+          <pre>curl -X DELETE \
+     -H "Authorization: Bearer tm_your_key" \
+     "https://yourdomain.com/v1/email/uuid?address=ab3f9c@yourdomain.com"</pre>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span>Response 200</span></div>
+          <pre>{ "ok": true, "data": { "deleted": true, "id": "uuid-..." } }</pre>
+        </div>
+      </section>
+
+      <div class="docs-divider"></div>
+      <h2 class="docs-h2" style="margin-bottom:4px">Key Management</h2>
+      <p style="color:var(--text-muted);margin-bottom:32px">Không cần xác thực — dùng từ trình duyệt</p>
+
+      <!-- POST /api/keys -->
+      <section id="ep-key-create" class="docs-section endpoint-section">
+        <div class="endpoint-header">
+          <span class="badge badge-post lg">POST</span>
+          <span class="endpoint-path">/api/keys</span>
+        </div>
+        <p>Tạo API key mới. Key được lưu trong Redis.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span>cURL</span></div>
+          <pre>curl -X POST https://yourdomain.com/api/keys \
+     -H "Content-Type: application/json" \
+     -d '{"label": "My App"}'</pre>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span>Response 201</span></div>
+          <pre>{ "key": "tm_a3f9b2c1...", "label": "My App", "createdAt": 1746300000000 }</pre>
+        </div>
+      </section>
+
+      <!-- GET /api/keys/:key -->
+      <section id="ep-key-get" class="docs-section endpoint-section">
+        <div class="endpoint-header">
+          <span class="badge badge-get lg">GET</span>
+          <span class="endpoint-path">/api/keys/:key</span>
+        </div>
+        <p>Lấy thông tin và usage của một API key.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span>Response 200</span></div>
+          <pre>{ "key": "tm_...", "label": "My App", "createdAt": 1746300000000, "requestCount": 42 }</pre>
+        </div>
+      </section>
+
+      <!-- DELETE /api/keys/:key -->
+      <section id="ep-key-del" class="docs-section endpoint-section">
+        <div class="endpoint-header">
+          <span class="badge badge-del lg">DELETE</span>
+          <span class="endpoint-path">/api/keys/:key</span>
+        </div>
+        <p>Thu hồi và xóa vĩnh viễn API key. Mọi request dùng key này sau đó sẽ nhận <code>401</code>.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span>Response 200</span></div>
+          <pre>{ "deleted": true }</pre>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    // Base URL
+    document.getElementById('baseUrlDisplay').textContent = window.location.origin;
+
+    // Copy buttons
+    document.querySelectorAll('.copy-btn[data-copy]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(btn.dataset.copy);
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 2000);
+      });
+    });
+
+    // Active sidebar link on scroll
+    const sections = document.querySelectorAll('.docs-section[id]');
+    const links    = document.querySelectorAll('.docs-sidebar-link');
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          links.forEach(l => l.classList.remove('active'));
+          const link = document.querySelector(`.docs-sidebar-link[href="#${e.target.id}"]`);
+          if (link) link.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach(s => observer.observe(s));
+  </script>
+</body>
+</html>

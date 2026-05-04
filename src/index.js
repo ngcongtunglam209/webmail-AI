@@ -11,6 +11,7 @@ const storage   = require('./storage');
 const apiRouter = require('./api');
 const { startSMTP, setNewEmailHandler }      = require('./smtp');
 const { startTelegramBot, notifyTelegram }   = require('./telegram');
+const devApiRouter = require('./devapi');
 
 async function main() {
   await storage.connect();
@@ -63,12 +64,19 @@ async function main() {
     message: { error: 'Quá nhiều request, thử lại sau.' },
   }));
 
+  // Developer API — rate limit riêng (token bucket qua middleware keyauth)
+  app.use('/v1', rateLimit({
+    windowMs: 60 * 1000,
+    max: 300,
+    message: { ok: false, error: 'Too many requests', code: 'RATE_LIMITED' },
+  }));
+  app.use('/v1', devApiRouter);
+
   app.use(express.static(path.join(__dirname, '../public')));
   app.use('/api', apiRouter);
 
-  app.get('/app', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/app.html'));
-  });
+  app.get('/app',  (req, res) => res.sendFile(path.join(__dirname, '../public/app.html')));
+  app.get('/docs', (req, res) => res.sendFile(path.join(__dirname, '../public/docs.html')));
 
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/index.html'));

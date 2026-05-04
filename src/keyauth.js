@@ -26,6 +26,14 @@ async function apiKeyAuth(req, res, next) {
     return res.status(401).json({ ok: false, error: 'API key not found or revoked', code: 'INVALID_KEY' });
   }
 
+  if (!keyData.userId) {
+    return res.status(401).json({
+      ok: false,
+      error: 'API key này được tạo trước hệ thống tài khoản. Vui lòng đăng ký tại /app và tạo key mới.',
+      code: 'LEGACY_KEY',
+    });
+  }
+
   let rl;
   try {
     rl = await storage.checkAndIncrementRateLimit(key);

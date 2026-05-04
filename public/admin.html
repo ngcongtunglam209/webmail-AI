@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — TempMail</title>
+<style>
+:root {
+  --bg: #0f172a; --surface: #1e293b; --surface2: #253347;
+  --border: #334155; --text: #e2e8f0; --muted: #94a3b8;
+  --accent: #3b82f6; --danger: #ef4444; --warn: #f59e0b; --success: #10b981;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+/* Login */
+#login { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+.login-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 40px; width: 340px; }
+.login-box h1 { font-size: 22px; margin-bottom: 4px; }
+.login-box p { color: var(--muted); margin-bottom: 24px; font-size: 13px; }
+.login-err { color: var(--danger); font-size: 12px; min-height: 18px; margin-bottom: 6px; }
+
+/* Header */
+header { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+.header-title { font-size: 16px; font-weight: 600; }
+.header-right { display: flex; gap: 8px; align-items: center; }
+
+/* Main */
+main { padding: 24px; max-width: 1280px; margin: 0 auto; }
+
+/* Stats */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+.stat-card.warn { border-color: var(--warn); }
+.stat-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .04em; }
+.stat-value { font-size: 28px; font-weight: 700; }
+.stat-card.warn .stat-value { color: var(--warn); }
+
+/* Tabs */
+.tab-bar { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+.tab { padding: 10px 18px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--muted); cursor: pointer; font-size: 14px; transition: color .15s; }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Toolbar */
+.toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+.filter-group { display: flex; gap: 4px; }
+.filter-btn { padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border); background: none; color: var(--muted); cursor: pointer; font-size: 13px; transition: all .15s; }
+.filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px; border-radius: 6px; border: none; font-size: 13px; cursor: pointer; transition: opacity .15s; }
+.btn:hover { opacity: .85; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-danger  { background: var(--danger); color: #fff; }
+.btn-ghost   { background: none; border: 1px solid var(--border); color: var(--text); }
+.btn-sm { padding: 4px 9px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
+.btn-sm.primary { background: var(--accent); color: #fff; }
+.btn-sm.danger  { background: var(--danger); color: #fff; }
+
+/* Inputs */
+input[type=password] { width: 100%; padding: 9px 13px; border-radius: 7px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 15px; margin-bottom: 8px; outline: none; }
+input:focus { border-color: var(--accent); }
+.btn-full { width: 100%; padding: 10px; border-radius: 7px; border: none; background: var(--accent); color: #fff; font-size: 15px; margin-top: 4px; cursor: pointer; }
+
+/* Table */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; padding: 10px 14px; font-size: 11px; color: var(--muted); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; background: var(--surface); }
+td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,.02); }
+tr.orphan-row td:first-child { border-left: 3px solid var(--danger); }
+
+/* Badges */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.badge-orphan { background: rgba(239,68,68,.15); color: var(--danger); }
+.badge-owned  { background: rgba(16,185,129,.15); color: var(--success); }
+
+/* Code */
+code { font-family: 'Consolas', monospace; font-size: 12px; background: rgba(255,255,255,.06); padding: 2px 5px; border-radius: 3px; }
+.otp-code { background: rgba(59,130,246,.15); color: var(--accent); padding: 2px 7px; border-radius: 4px; font-family: monospace; font-size: 13px; font-weight: 600; }
+
+/* States */
+.empty-state { text-align: center; padding: 50px 20px; color: var(--muted); }
+.empty-icon { font-size: 36px; margin-bottom: 10px; }
+.loading { text-align: center; padding: 40px; color: var(--muted); }
+.err-state { text-align: center; padding: 40px; color: var(--danger); }
+
+/* TTL bar */
+.ttl-bar { display: inline-block; width: 54px; height: 5px; background: var(--border); border-radius: 3px; vertical-align: middle; margin-left: 6px; overflow: hidden; }
+.ttl-fill { height: 100%; border-radius: 3px; background: var(--success); }
+.ttl-fill.low { background: var(--warn); }
+.ttl-fill.critical { background: var(--danger); }
+
+/* Modal */
+#modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.65); }
+.modal-box { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 860px; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.modal-header h2 { font-size: 14px; font-family: monospace; color: var(--accent); }
+.modal-body { overflow-y: auto; }
+
+@media (max-width: 700px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  main { padding: 14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="login">
+  <div class="login-box">
+    <h1>Admin Panel</h1>
+    <p>TempMail — Restricted Access</p>
+    <input type="password" id="secret-input" placeholder="Admin Secret" autocomplete="current-password">
+    <div class="login-err" id="login-err"></div>
+    <button class="btn-full" id="login-btn" onclick="doLogin()">Đăng nhập</button>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div id="dashboard" hidden>
+  <header>
+    <div class="header-title">TempMail Admin</div>
+    <div class="header-right">
+      <button class="btn btn-ghost" onclick="refreshAll()">↻ Làm mới</button>
+      <button class="btn btn-ghost" onclick="doLogout()">Đăng xuất</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Tổng API Keys</div>
+        <div class="stat-value" id="s-total-keys">—</div>
+      </div>
+      <div class="stat-card warn">
+        <div class="stat-label">Orphan Keys</div>
+        <div class="stat-value" id="s-orphan-keys">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Inboxes</div>
+        <div class="stat-value" id="s-inboxes">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Tổng Emails</div>
+        <div class="stat-value" id="s-emails">—</div>
+      </div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab active" id="tab-keys"    onclick="switchTab('keys')">API Keys</button>
+      <button class="tab"        id="tab-inboxes" onclick="switchTab('inboxes')">Inboxes</button>
+    </div>
+
+    <!-- Keys panel -->
+    <div id="panel-keys">
+      <div class="toolbar">
+        <div class="filter-group">
+          <button class="filter-btn active" id="f-all"    onclick="setFilter('all')">Tất cả</button>
+          <button class="filter-btn"        id="f-orphan" onclick="setFilter('orphan')">Orphan</button>
+          <button class="filter-btn"        id="f-owned"  onclick="setFilter('owned')">Có chủ</button>
+        </div>
+        <button class="btn btn-danger" onclick="purgeOrphans()">🗑 Xóa tất cả Orphan</button>
+      </div>
+      <div id="keys-content"><div class="loading">Đang tải...</div></div>
+    </div>
+
+    <!-- Inboxes panel -->
+    <div id="panel-inboxes" hidden>
+      <div id="inboxes-content"><div class="loading">Đang tải...</div></div>
+    </div>
+  </main>
+</div>
+
+<!-- Inbox detail modal -->
+<div id="modal" hidden>
+  <div class="modal-overlay" onclick="closeModal()"></div>
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="modal-title"></h2>
+      <button class="btn btn-ghost" style="padding:4px 10px" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+let secret = '';
+let currentFilter = 'all';
+let currentTab = 'keys';
+
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function relTime(ms) {
+  if (!ms) return '—';
+  const d = Date.now() - ms;
+  if (d < 60000)     return 'vừa xong';
+  if (d < 3600000)   return Math.floor(d/60000) + ' phút trước';
+  if (d < 86400000)  return Math.floor(d/3600000) + ' giờ trước';
+  return Math.floor(d/86400000) + ' ngày trước';
+}
+
+function fmtTtl(sec) {
+  if (!sec || sec <= 0) return '<span style="color:var(--danger)">Hết hạn</span>';
+  if (sec < 60)   return sec + 's';
+  if (sec < 3600) return Math.floor(sec/60) + 'm ' + (sec%60) + 's';
+  return Math.floor(sec/3600) + 'h ' + Math.floor((sec%3600)/60) + 'm';
+}
+
+function ttlBar(sec, max = 86400) {
+  const pct = Math.min(100, Math.round((sec/max)*100));
+  const cls = pct < 10 ? 'critical' : pct < 25 ? 'low' : '';
+  return `<span class="ttl-bar"><span class="ttl-fill ${cls}" style="width:${pct}%"></span></span>`;
+}
+
+function maskKey(k) {
+  return k.length > 12 ? k.slice(0,9) + '···' + k.slice(-4) : k;
+}
+
+async function api(method, path, body) {
+  try {
+    const opts = { method, headers: { 'X-Admin-Secret': secret, 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(path, opts);
+    const data = await r.json().catch(() => ({}));
+    return { ok: r.ok, status: r.status, data };
+  } catch (e) {
+    return { ok: false, status: 0, data: { error: e.message } };
+  }
+}
+
+async function doLogin() {
+  const val = document.getElementById('secret-input').value.trim();
+  if (!val) return;
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = '...';
+  document.getElementById('login-err').textContent = '';
+  secret = val;
+  const { ok, data } = await api('GET', '/admin/api/stats');
+  if (ok) {
+    sessionStorage.setItem('adm_s', secret);
+    showDashboard();
+  } else {
+    document.getElementById('login-err').textContent = data.error || 'Sai secret';
+    secret = '';
+    btn.disabled = false; btn.textContent = 'Đăng nhập';
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('adm_s');
+  secret = '';
+  document.getElementById('dashboard').hidden = true;
+  document.getElementById('login').hidden = false;
+  document.getElementById('secret-input').value = '';
+}
+
+function showDashboard() {
+  document.getElementById('login').hidden = true;
+  document.getElementById('dashboard').hidden = false;
+  refreshAll();
+}
+
+async function loadStats() {
+  const { ok, data } = await api('GET', '/admin/api/stats');
+  if (!ok) return;
+  document.getElementById('s-total-keys').textContent  = data.totalKeys  ?? '—';
+  document.getElementById('s-orphan-keys').textContent = data.orphanKeys ?? '—';
+  document.getElementById('s-inboxes').textContent     = data.activeInboxes ?? '—';
+  document.getElementById('s-emails').textContent      = data.totalEmails ?? '—';
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  ['all','orphan','owned'].forEach(x =>
+    document.getElementById('f-'+x).classList.toggle('active', x === f));
+  loadKeys();
+}
+
+async function loadKeys() {
+  const el = document.getElementById('keys-content');
+  el.innerHTML = '<div class="loading">Đang tải...</div>';
+  const { ok, data } = await api('GET', `/admin/api/keys?type=${currentFilter}`);
+  if (!ok) { el.innerHTML = `<div class="err-state">Lỗi: ${esc(data.error)}</div>`; return; }
+  const keys = data.keys || [];
+  if (!keys.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">🔑</div>Không có API key nào</div>';
+    return;
+  }
+  const rows = keys.map(k => `
+    <tr class="${k.isOrphan ? 'orphan-row' : ''}">
+      <td><code title="${esc(k.key)}">${esc(maskKey(k.key))}</code></td>
+      <td>${esc(k.label) || '<span style="color:var(--muted)">—</span>'}</td>
+      <td>${k.isOrphan
+        ? '<span class="badge badge-orphan">ORPHAN</span>'
+        : `<span class="badge badge-owned" title="${esc(k.userId)}">${esc(k.userId.slice(0,10))}…</span>`
+      }</td>
+      <td style="color:var(--muted)">${relTime(k.createdAt)}</td>
+      <td>${k.requestCount.toLocaleString()}</td>
+      <td><button class="btn-sm danger" onclick="deleteKey('${esc(k.key)}')">Xóa</button></td>
+    </tr>`).join('');
+  el.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Key</th><th>Label</th><th>Owner</th><th>Tạo lúc</th><th>Requests</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`;
+}
+
+async function deleteKey(key) {
+  if (!confirm(`Xóa key ${maskKey(key)}?`)) return;
+  const { ok, data } = await api('DELETE', `/admin/api/keys/${key}`);
+  if (ok) { loadStats(); loadKeys(); }
+  else alert('Lỗi: ' + (data.error || 'unknown'));
+}
+
+async function purgeOrphans() {
+  if (!confirm('Xóa TẤT CẢ orphan keys?\nHành động này không thể hoàn tác.')) return;
+  const { ok, data } = await api('DELETE', '/admin/api/keys/purge-orphans');
+  if (ok) { alert(`Đã xóa ${data.deleted} orphan key(s)`); loadStats(); loadKeys(); }
+  else alert('Lỗi: ' + (data.error || 'unknown'));
+}
+
+async function loadInboxes() {
+  const el = document.getElementById('inboxes-content');
+  el.innerHTML = '<div class="loading">Đang tải...</div>';
+  const { ok, data } = await api('GET', '/admin/api/inboxes');
+  if (!ok) { el.innerHTML = `<div class="err-state">Lỗi: ${esc(data.error)}</div>`; return; }
+  const inboxes = data.inboxes || [];
+  if (!inboxes.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>Không có inbox nào đang active</div>';
+    return;
+  }
+  const rows = inboxes.map(box => `
+    <tr>
+      <td><code>${esc(box.address)}</code></td>
+      <td>${box.emailCount}</td>
+      <td style="white-space:nowrap">${fmtTtl(box.ttlRemaining)}${ttlBar(box.ttlRemaining)}</td>
+      <td style="color:var(--muted)">${relTime(box.lastEmailAt)}</td>
+      <td style="white-space:nowrap">
+        <button class="btn-sm primary" style="margin-right:4px" onclick="viewInbox('${esc(box.address)}')">Xem</button>
+        <button class="btn-sm danger" onclick="deleteInbox('${esc(box.address)}')">Xóa</button>
+      </td>
+    </tr>`).join('');
+  el.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Địa chỉ</th><th>Emails</th><th>TTL còn lại</th><th>Email cuối</th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`;
+}
+
+async function viewInbox(address) {
+  openModal(address, '<div class="loading">Đang tải...</div>');
+  const { ok, data } = await api('GET', `/admin/api/inboxes/${encodeURIComponent(address)}`);
+  if (!ok) {
+    document.getElementById('modal-body').innerHTML = `<div class="err-state">Lỗi: ${esc(data.error)}</div>`;
+    return;
+  }
+  const emails = data.emails || [];
+  if (!emails.length) {
+    document.getElementById('modal-body').innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>Inbox trống</div>';
+    return;
+  }
+  const rows = emails.map(e => `
+    <tr>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><code>${esc(e.from)}</code></td>
+      <td>${esc(e.subject)}</td>
+      <td style="color:var(--muted);white-space:nowrap">${relTime(e.receivedAt)}</td>
+      <td>${e.otp ? `<span class="otp-code">${esc(e.otp)}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+    </tr>`).join('');
+  document.getElementById('modal-body').innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>From</th><th>Subject</th><th>Nhận lúc</th><th>OTP</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`;
+}
+
+async function deleteInbox(address) {
+  if (!confirm(`Xóa inbox ${address} và tất cả email?`)) return;
+  const { ok, data } = await api('DELETE', `/admin/api/inboxes/${encodeURIComponent(address)}`);
+  if (ok) { loadStats(); loadInboxes(); }
+  else alert('Lỗi: ' + (data.error || 'unknown'));
+}
+
+function openModal(title, content) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = content;
+  document.getElementById('modal').hidden = false;
+}
+
+function closeModal() { document.getElementById('modal').hidden = true; }
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-keys').classList.toggle('active', tab === 'keys');
+  document.getElementById('tab-inboxes').classList.toggle('active', tab === 'inboxes');
+  document.getElementById('panel-keys').hidden    = tab !== 'keys';
+  document.getElementById('panel-inboxes').hidden = tab !== 'inboxes';
+  if (tab === 'inboxes') loadInboxes();
+}
+
+async function refreshAll() {
+  loadStats();
+  if (currentTab === 'keys') loadKeys();
+  else loadInboxes();
+}
+
+document.getElementById('secret-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+window.addEventListener('load', () => {
+  const stored = sessionStorage.getItem('adm_s');
+  if (stored) { secret = stored; showDashboard(); }
+});
+</script>
+</body>
+</html>

@@ -250,9 +250,161 @@ async function checkAndIncrementRateLimit(key) {
 
 function _redis() { return redis; }
 
+// ── Admin functions ──
+
+async function adminGetStats() {
+  let apiCursor = '0', totalKeys = 0, orphanKeys = 0;
+  do {
+    const [next, keys] = await redis.scan(apiCursor, 'MATCH', 'apikey:tm_*', 'COUNT', 200);
+    apiCursor = next;
+    if (!keys.length) continue;
+    totalKeys += keys.length;
+    const pl = redis.pipeline();
+    keys.forEach(k => pl.hget(k, 'userId'));
+    const res = await pl.exec();
+    orphanKeys += res.filter(([, v]) => !v).length;
+  } while (apiCursor !== '0');
+
+  let inboxCursor = '0', activeInboxes = 0, totalEmails = 0;
+  do {
+    const [next, keys] = await redis.scan(inboxCursor, 'MATCH', 'inbox:ttl:*', 'COUNT', 200);
+    inboxCursor = next;
+    activeInboxes += keys.length;
+    if (keys.length) {
+      const addresses = keys.map(k => k.replace('inbox:ttl:', ''));
+      const pl = redis.pipeline();
+      addresses.forEach(addr => pl.zcard(`inbox:${addr}`));
+      const res = await pl.exec();
+      totalEmails += res.reduce((sum, [, c]) => sum + (parseInt(c) || 0), 0);
+    }
+  } while (inboxCursor !== '0');
+
+  return { totalKeys, orphanKeys, ownedKeys: totalKeys - orphanKeys, activeInboxes, totalEmails };
+}
+
+async function adminListApiKeys(type = 'all') {
+  let cursor = '0';
+  const all = [];
+  do {
+    const [next, keys] = await redis.scan(cursor, 'MATCH', 'apikey:tm_*', 'COUNT', 200);
+    cursor = next;
+    if (!keys.length) continue;
+    const pl = redis.pipeline();
+    keys.forEach(k => pl.hgetall(k));
+    const res = await pl.exec();
+    res.forEach(([, d], i) => {
+      if (!d || !d.createdAt) return;
+      all.push({
+        key:          keys[i].replace('apikey:', ''),
+        label:        d.label || '',
+        createdAt:    parseInt(d.createdAt),
+        requestCount: parseInt(d.requestCount) || 0,
+        userId:       d.userId || '',
+        isOrphan:     !d.userId,
+      });
+    });
+  } while (cursor !== '0');
+
+  if (type === 'orphan') return all.filter(k => k.isOrphan);
+  if (type === 'owned')  return all.filter(k => !k.isOrphan);
+  return all;
+}
+
+async function adminDeleteOrphanKeys() {
+  let cursor = '0', deleted = 0;
+  do {
+    const [next, keys] = await redis.scan(cursor, 'MATCH', 'apikey:tm_*', 'COUNT', 200);
+    cursor = next;
+    if (!keys.length) continue;
+    const pl = redis.pipeline();
+    keys.forEach(k => pl.hget(k, 'userId'));
+    const res = await pl.exec();
+    const toDelete = keys.filter((_, i) => !res[i][1]);
+    if (toDelete.length) {
+      await redis.del(toDelete);
+      deleted += toDelete.length;
+    }
+  } while (cursor !== '0');
+  return deleted;
+}
+
+async function adminListInboxes() {
+  let cursor = '0';
+  const all = [];
+  do {
+    const [next, keys] = await redis.scan(cursor, 'MATCH', 'inbox:ttl:*', 'COUNT', 200);
+    cursor = next;
+    if (!keys.length) continue;
+    const addresses = keys.map(k => k.replace('inbox:ttl:', ''));
+    const pl = redis.pipeline();
+    addresses.forEach(addr => {
+      pl.ttl(`inbox:${addr}`);
+      pl.zcard(`inbox:${addr}`);
+      pl.zrevrange(`inbox:${addr}`, 0, 0, 'WITHSCORES');
+    });
+    const res = await pl.exec();
+    addresses.forEach((addr, i) => {
+      const ttl     = res[i * 3][1];
+      const count   = res[i * 3 + 1][1];
+      const lastArr = res[i * 3 + 2][1];
+      all.push({
+        address:      addr,
+        emailCount:   parseInt(count) || 0,
+        ttlRemaining: parseInt(ttl) > 0 ? parseInt(ttl) : 0,
+        lastEmailAt:  lastArr && lastArr.length >= 2 ? parseInt(lastArr[1]) : null,
+      });
+    });
+  } while (cursor !== '0');
+  return all.sort((a, b) => (b.lastEmailAt || 0) - (a.lastEmailAt || 0));
+}
+
+async function adminGetInboxEmails(address) {
+  const addr = address.toLowerCase();
+  const ids = await redis.zrevrange(`inbox:${addr}`, 0, -1);
+  if (!ids.length) return [];
+  const pl = redis.pipeline();
+  ids.forEach(id => pl.hgetall(emailKey(id)));
+  const res = await pl.exec();
+  return res.map(([, d]) => {
+    if (!d || !d.id) return null;
+    return {
+      id:         d.id,
+      from:       d.from,
+      subject:    d.subject,
+      date:       d.date,
+      receivedAt: parseInt(d.receivedAt),
+      otp:        d.otp || null,
+    };
+  }).filter(Boolean);
+}
+
+async function adminDeleteInbox(address) {
+  const addr = address.toLowerCase();
+  const ids = await redis.zrange(`inbox:${addr}`, 0, -1);
+  if (!ids.length) {
+    await redis.del([`inbox:${addr}`, `inbox:ttl:${addr}`]);
+    return;
+  }
+  const pl1 = redis.pipeline();
+  ids.forEach(id => pl1.hget(emailKey(id), 'attachments'));
+  const attResults = await pl1.exec();
+
+  const pl2 = redis.pipeline();
+  pl2.del(`inbox:${addr}`);
+  pl2.del(`inbox:ttl:${addr}`);
+  ids.forEach((id, i) => {
+    pl2.del(emailKey(id));
+    const atts = JSON.parse(attResults[i][1] || '[]');
+    atts.forEach((_, j) => pl2.del(attKey(id, j)));
+  });
+  await pl2.exec();
+}
+
 module.exports = {
   connect, disconnect, saveEmail, getInbox, getInboxWithMeta, getEmail,
   getAttachment, deleteEmail, refreshInbox, getInboxTtl,
   createApiKey, getApiKey, deleteApiKey, checkAndIncrementRateLimit,
+  adminGetStats, adminListApiKeys, adminDeleteOrphanKeys,
+  adminListInboxes, adminGetInboxEmails, adminDeleteInbox,
   _redis,
 };

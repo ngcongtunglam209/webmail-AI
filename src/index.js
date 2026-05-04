@@ -10,7 +10,8 @@ const path         = require('path');
 const config    = require('./config');
 const storage   = require('./storage');
 const apiRouter = require('./api');
-const { router: authRouter } = require('./authRoutes');
+const { router: authRouter }  = require('./authRoutes');
+const { router: adminRouter } = require('./adminRoutes');
 const { startSMTP, setNewEmailHandler }      = require('./smtp');
 const { startTelegramBot, notifyTelegram }   = require('./telegram');
 const devApiRouter = require('./devapi');
@@ -97,6 +98,10 @@ async function main() {
   app.use(express.static(path.join(__dirname, '../public')));
   app.use('/api/auth', authRouter);
   app.use('/api', apiRouter);
+
+  app.use('/admin/api', rateLimit({ windowMs: 60_000, max: 120, message: { error: 'Too many requests' } }));
+  app.use('/admin/api', adminRouter);
+  app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, '../public/admin.html')));
 
   app.get('/app',  (req, res) => res.sendFile(path.join(__dirname, '../public/app.html')));
   app.get('/docs', (req, res) => res.sendFile(path.join(__dirname, '../public/docs.html')));

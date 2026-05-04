@@ -7,11 +7,11 @@
   <meta name="description" content="Tạo địa chỉ email tạm thời miễn phí trong 1 giây. Nhận email, lấy OTP, bảo vệ email thật của bạn." />
   <meta name="keywords" content="email tạm thời, temp mail, email ảo, disposable email, fake email, otp" />
   <meta name="robots" content="index, follow" />
-  <meta property="og:type"        content="website" />
-  <meta property="og:title"       content="TempMail — Email tạm thời miễn phí" />
-  <meta property="og:description" content="Tạo địa chỉ email tạm thời trong 1 giây. Nhận OTP tức thì, không cần đăng ký." />
-  <meta name="twitter:card"        content="summary" />
-  <meta name="theme-color" content="#3b82f6" />
+  <meta property="og:type"         content="website" />
+  <meta property="og:title"        content="TempMail — Email tạm thời miễn phí" />
+  <meta property="og:description"  content="Tạo địa chỉ email tạm thời trong 1 giây. Nhận OTP tức thì, không cần đăng ký." />
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="theme-color"         content="#3b82f6" />
   <link rel="icon"     href="/favicon.svg" type="image/svg+xml" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -35,26 +35,43 @@
 
   <!-- Hero -->
   <section class="hero">
-    <div class="hero-badge">✨ Miễn phí · Không đăng ký · Tức thì</div>
+    <div class="hero-badge">
+      <span class="hero-badge-dot"></span>
+      Miễn phí · Không đăng ký · Tức thì
+    </div>
     <h1 class="hero-title">
       Email tạm thời<br/>
       <span class="gradient-text">trong 1 giây</span>
     </h1>
     <p class="hero-desc">
       Tạo địa chỉ email ảo ngay lập tức. Nhận mail, lấy OTP tự động,<br/>
-      bảo vệ email thật của bạn khỏi spam.
+      bảo vệ email thật của bạn khỏi spam vĩnh viễn.
     </p>
     <div class="hero-actions">
-      <a href="/app" class="btn-hero-primary">Tạo email ngay</a>
+      <a href="/app" class="btn-hero-primary">⚡ Tạo email ngay</a>
       <a href="#features" class="btn-hero-ghost">Tìm hiểu thêm ↓</a>
     </div>
-
-    <!-- Demo address pill -->
     <div class="demo-pill">
       <span class="demo-addr">ab3f92cd10@loveyuna.today</span>
-      <span class="demo-copied">Sao chép</span>
+      <button class="demo-copied">Sao chép</button>
     </div>
   </section>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-num">100%</div>
+      <div class="stat-label">Miễn phí mãi mãi</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">&lt;1s</div>
+      <div class="stat-label">Tạo địa chỉ tức thì</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">0</div>
+      <div class="stat-label">Thông tin cần cung cấp</div>
+    </div>
+  </div>
 
   <!-- Features -->
   <section class="features" id="features">
@@ -74,7 +91,7 @@
       <div class="feature-card">
         <div class="feature-icon">📱</div>
         <h3>Telegram Bot</h3>
-        <p>Nhận thông báo email và OTP ngay trên Telegram. Dùng mọi lúc mọi nơi.</p>
+        <p>Nhận thông báo email và OTP ngay trên Telegram. Dùng mọi lúc mọi nơi không cần mở trình duyệt.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🕒</div>
@@ -84,12 +101,12 @@
       <div class="feature-card">
         <div class="feature-icon">📎</div>
         <h3>File đính kèm</h3>
-        <p>Nhận và tải về file đính kèm trực tiếp. Hỗ trợ mọi định dạng file.</p>
+        <p>Nhận và tải về file đính kèm trực tiếp. Hỗ trợ mọi định dạng file phổ biến.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🌐</div>
         <h3>Nhiều domain</h3>
-        <p>Chọn từ nhiều tên miền khác nhau để tránh bị chặn bởi các dịch vụ.</p>
+        <p>Chọn từ nhiều tên miền khác nhau để tránh bị chặn bởi các dịch vụ khắt khe.</p>
       </div>
     </div>
   </section>
@@ -124,20 +141,24 @@
     <div class="tg-card">
       <div class="tg-icon">✈️</div>
       <h2>Dùng trên Telegram</h2>
-      <p>Nhận thông báo email và OTP ngay trên Telegram Bot — không cần mở trình duyệt.</p>
+      <p>Nhận thông báo email và OTP ngay trên Telegram Bot — không cần mở trình duyệt, hoạt động 24/7.</p>
       <div class="tg-features">
         <span>📥 Xem inbox</span>
         <span>🔐 Nhận OTP</span>
         <span>🆕 Tạo địa chỉ mới</span>
         <span>🗑️ Xóa email</span>
+        <span>⏱ Đặt thời hạn</span>
       </div>
+      <a href="https://t.me/YunaTempMailBot" target="_blank" rel="noopener" class="tg-btn">
+        ✈️ Mở @YunaTempMailBot
+      </a>
     </div>
   </section>
 
   <!-- CTA -->
   <section class="cta">
     <h2>Sẵn sàng bảo vệ email thật của bạn?</h2>
-    <p>Miễn phí hoàn toàn. Không cần tài khoản.</p>
+    <p>Miễn phí hoàn toàn. Không cần tài khoản. Bắt đầu ngay.</p>
     <a href="/app" class="btn-hero-primary btn-lg">Tạo email ngay →</a>
   </section>
 
@@ -151,13 +172,14 @@
       <div class="footer-links">
         <a href="/app">Ứng dụng</a>
         <a href="#features">Tính năng</a>
+        <a href="https://t.me/YunaTempMailBot" target="_blank" rel="noopener">Telegram Bot</a>
       </div>
       <div class="footer-copy">Made with ☕ — <a href="/app#donate">Ủng hộ tác giả</a></div>
     </div>
   </footer>
 
   <script>
-    // Theme toggle
+    // Theme
     const saved = localStorage.getItem('tm_theme') || 'dark';
     document.documentElement.setAttribute('data-theme', saved);
     const btn = document.getElementById('themeBtn');
@@ -169,13 +191,11 @@
       localStorage.setItem('tm_theme', next);
       btn.textContent = next === 'dark' ? '🌙' : '☀️';
     });
-
-    // Demo pill click
-    document.querySelector('.demo-copied').addEventListener('click', () => {
-      const el = document.querySelector('.demo-copied');
+    // Demo pill
+    document.querySelector('.demo-copied').addEventListener('click', function() {
       navigator.clipboard.writeText(document.querySelector('.demo-addr').textContent);
-      el.textContent = '✓ Đã sao chép';
-      setTimeout(() => { el.textContent = 'Sao chép'; }, 2000);
+      this.textContent = '✓ Đã sao chép';
+      setTimeout(() => { this.textContent = 'Sao chép'; }, 2000);
     });
   </script>
 </body>

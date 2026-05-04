@@ -21,23 +21,25 @@
 
   <div class="page">
     <aside class="sidebar">
+      <!-- Logo -->
       <div class="logo">
         <div class="logo-icon">✉</div>
         <span class="logo-text">TempMail</span>
         <button class="btn-theme" id="themeBtn" title="Đổi giao diện">🌙</button>
       </div>
 
+      <!-- Address card -->
       <div class="address-card">
-        <div class="address-label">Địa chỉ của bạn</div>
+        <div class="address-label">Địa chỉ email của bạn</div>
         <div class="address-value" id="emailAddress">Đang tạo...</div>
         <div class="address-actions">
           <button class="btn btn-primary btn-full" id="copyBtn"><span class="btn-icon">⎘</span> Sao chép</button>
           <button class="btn btn-ghost" id="qrBtn" title="Mã QR">⊞</button>
-          <button class="btn btn-ghost" id="refreshBtn" title="Làm mới">↻</button>
+          <button class="btn btn-ghost" id="refreshBtn" title="Làm mới inbox">↻</button>
           <button class="btn btn-ghost" id="newBtn" title="Địa chỉ mới">+</button>
         </div>
         <div class="ttl-row">
-          <span class="ttl-label">Hết hạn sau</span>
+          <span class="ttl-label">Hết hạn</span>
           <select id="ttlSelect" class="ttl-select">
             <option value="600">10 phút</option>
             <option value="1800">30 phút</option>
@@ -52,6 +54,7 @@
         </div>
       </div>
 
+      <!-- Custom address -->
       <div class="custom-section">
         <div class="custom-label">Tùy chỉnh địa chỉ</div>
         <div class="custom-row">
@@ -62,13 +65,16 @@
         <button class="btn btn-secondary btn-full" id="customBtn">Tạo địa chỉ này</button>
       </div>
 
+      <!-- History -->
       <div class="history-section" id="historySection" style="display:none">
         <div class="custom-label">Đã dùng gần đây</div>
         <div id="historyList" class="history-list"></div>
       </div>
 
+      <!-- Donate -->
       <button class="btn-donate" id="donateBtn"><span>☕</span> Ủng hộ tác giả</button>
 
+      <!-- Footer -->
       <div class="sidebar-footer">
         <div class="status-dot" id="statusDot"></div>
         <span id="statusText">Đang kết nối...</span>
@@ -127,7 +133,7 @@
         <div class="bank-row"><span class="bank-label">Chủ tài khoản</span><span class="bank-value">NGUYEN CONG TUNG LAM</span></div>
         <div class="bank-row"><span class="bank-label">Nội dung</span><span class="bank-value bank-note">Ung ho TempMail</span></div>
       </div>
-      <p class="donate-thanks">Mọi khoản ủng hộ dù nhỏ đều giúp duy trì server và phát triển thêm tính năng mới. Cảm ơn bạn rất nhiều! 🙏</p>
+      <p class="donate-thanks">Mọi khoản ủng hộ dù nhỏ đều giúp duy trì server và phát triển tính năng mới. Cảm ơn bạn! 🙏</p>
     </div>
   </div>
 

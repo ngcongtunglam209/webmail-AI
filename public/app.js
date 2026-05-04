@@ -13,6 +13,7 @@ let ttlRemaining   = 3600;
 let ttlInterval    = null;
 let pollInterval   = null;
 let readIds        = new Set();
+let ttlWarned      = false; // cờ cảnh báo 60s, tránh lặp
 
 // DOM refs
 const emailAddressEl = document.getElementById('emailAddress');
@@ -66,7 +67,11 @@ const copyStkBtn     = document.getElementById('copyStkBtn');
 // ── Init ──
 (async () => {
   await loadDomains();
-  await generateNewAddress();
+  if (!restoreCurrentAddress()) {
+    await generateNewAddress();
+  } else {
+    await loadInbox();
+  }
   renderHistory();
   updateNotifBtn();
 })();
@@ -111,7 +116,8 @@ refreshBtn.addEventListener('click', loadInbox);
 newBtn.addEventListener('click', generateNewAddress);
 
 ttlSelect.addEventListener('change', () => {
-  if (currentAddress) generateNewAddress();
+  // Chỉ cập nhật TTL sẽ dùng, không tự generate address mới
+  showToast('⏱ TTL đã chọn', `Địa chỉ tiếp theo sẽ có hiệu lực ${ttlSelect.options[ttlSelect.selectedIndex].text}`);
 });
 
 customBtn.addEventListener('click', () => {
@@ -225,6 +231,12 @@ function setAddress(address, ttl = 3600) {
   saveToHistory(address);
   renderHistory();
   resetTimer(ttl);
+  // Lưu địa chỉ hiện tại vào localStorage để restore sau khi F5
+  localStorage.setItem('tm_current', JSON.stringify({
+    address,
+    originalTtl: currentTtl,
+    createdAt: Date.now(),
+  }));
 }
 
 async function loadInbox() {
@@ -394,6 +406,7 @@ function updateCount() {
 // ── TTL timer ──
 function resetTimer(ttl = 3600) {
   ttlRemaining = ttl;
+  ttlWarned    = false;
   clearInterval(ttlInterval);
   ttlInterval = setInterval(() => {
     ttlRemaining = Math.max(0, ttlRemaining - 1);
@@ -401,7 +414,15 @@ function resetTimer(ttl = 3600) {
     ttlFill.style.width = `${pct}%`;
     ttlFill.classList.toggle('low', pct < 20);
     timerText.textContent = formatDuration(ttlRemaining);
-    if (ttlRemaining === 0) clearInterval(ttlInterval);
+    if (ttlRemaining === 60 && !ttlWarned) {
+      ttlWarned = true;
+      showToast('⏳ Sắp hết hạn', 'Địa chỉ email sẽ hết hạn trong 60 giây.');
+    }
+    if (ttlRemaining === 0) {
+      clearInterval(ttlInterval);
+      showToast('⌛ Đã hết hạn', 'Nhấn + để tạo địa chỉ email mới.');
+      localStorage.removeItem('tm_current');
+    }
   }, 1000);
   ttlFill.style.width = '100%';
   timerText.textContent = formatDuration(ttl);
@@ -426,7 +447,7 @@ function removeFromHistory(address) {
 
 function renderHistory() {
   const history = getHistory();
-  if (history.length <= 1) {
+  if (history.length === 0) {
     historySection.style.display = 'none';
     return;
   }
@@ -573,4 +594,28 @@ function escHtml(str) {
   return String(str)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Address persistence across F5 ──
+function restoreCurrentAddress() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('tm_current') || 'null');
+    if (!saved || !saved.address || !saved.createdAt || !saved.originalTtl) return false;
+    const elapsedSec = Math.floor((Date.now() - saved.createdAt) / 1000);
+    const remaining  = saved.originalTtl - elapsedSec;
+    if (remaining <= 10) {
+      localStorage.removeItem('tm_current');
+      return false; // het han hoac sap het → tao moi
+    }
+    currentTtl     = saved.originalTtl;
+    currentAddress = saved.address;
+    emailAddressEl.textContent = saved.address;
+    socket.emit('watch', saved.address);
+    readIds.clear();
+    ttlSelect.value = String(saved.originalTtl);
+    resetTimer(remaining);
+    return true;
+  } catch (_) {
+    return false;
+  }
 }

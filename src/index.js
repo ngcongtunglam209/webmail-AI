@@ -101,7 +101,12 @@ async function main() {
 
   app.use('/admin/api', rateLimit({ windowMs: 60_000, max: 120, message: { error: 'Too many requests' } }));
   app.use('/admin/api', adminRouter);
-  app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, '../public/admin.html')));
+  app.get('/admin', (req, res) => {
+    res.setHeader('Content-Security-Policy',
+      "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:;"
+    );
+    res.sendFile(path.join(__dirname, '../public/admin.html'));
+  });
 
   app.get('/app',  (req, res) => res.sendFile(path.join(__dirname, '../public/app.html')));
   app.get('/docs', (req, res) => res.sendFile(path.join(__dirname, '../public/docs.html')));

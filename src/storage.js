@@ -78,18 +78,18 @@ async function saveEmail(to, parsed, ttl = config.mail.ttl) {
     pipeline.expire(attKey(id, i), ttl);
   });
 
+  // Lấy danh sách cũ cần xóa trước khi add (để xóa email key sau)
+  const maxBox = config.mail.maxPerBox;
+  const oldIds = await redis.zrange(inboxKey(address), 0, -(maxBox + 1));
+
   await pipeline.exec();
 
-  // Giới hạn số mail trong inbox
-  const count = await redis.zcard(inboxKey(address));
-  if (count > config.mail.maxPerBox) {
-    const oldest = await redis.zrange(inboxKey(address), 0, count - config.mail.maxPerBox - 1);
-    if (oldest.length) {
-      const trimPl = redis.pipeline();
-      trimPl.zrem(inboxKey(address), ...oldest);
-      oldest.forEach(oid => trimPl.del(emailKey(oid)));
-      await trimPl.exec();
-    }
+  // Xóa email cũ vượt giới hạn (1 pipeline, không cần zcard)
+  if (oldIds.length) {
+    const trimPl = redis.pipeline();
+    trimPl.zremrangebyrank(inboxKey(address), 0, -(maxBox + 1));
+    oldIds.forEach(oid => trimPl.del(emailKey(oid)));
+    await trimPl.exec();
   }
 
   return id;
@@ -101,7 +101,44 @@ async function getInbox(address) {
 
   const pipeline = redis.pipeline();
   ids.forEach((id) => pipeline.hgetall(emailKey(id)));
-  const results = await pipeline.exec(); // [[err, val], ...]
+  const results = await pipeline.exec();
+
+  return results.map(([err, data]) => {
+    if (err || !data || !data.id) return null;
+    return {
+      id:          data.id,
+      from:        data.from,
+      subject:     data.subject,
+      date:        data.date,
+      receivedAt:  parseInt(data.receivedAt),
+      hasHtml:     !!data.html,
+      otp:         data.otp || null,
+      attachments: JSON.parse(data.attachments || '[]'),
+    };
+  }).filter(Boolean);
+}
+
+// Gom getInboxTtl + refreshInbox + getInbox vào 2 RTT thay vì 3 await tuần tự
+async function getInboxWithMeta(address) {
+  const addr = address.toLowerCase();
+
+  // RTT 1: lấy TTL + danh sách IDs cùng lúc
+  const pl1 = redis.pipeline();
+  pl1.get(ttlKey(addr));
+  pl1.zrevrange(inboxKey(addr), 0, -1);
+  const [[, storedTtl], [, ids]] = await pl1.exec();
+
+  const ttl = parseInt(storedTtl) || config.mail.ttl;
+
+  // Refresh TTL fire-and-forget (không block response)
+  redis.expire(inboxKey(addr), ttl).catch(() => {});
+
+  if (!ids || !ids.length) return { emails: [], ttl };
+
+  // RTT 2: fetch nội dung tất cả email
+  const pl2 = redis.pipeline();
+  ids.forEach(id => pl2.hgetall(emailKey(id)));
+  const results = await pl2.exec();
 
   const emails = results.map(([err, data]) => {
     if (err || !data || !data.id) return null;
@@ -115,9 +152,9 @@ async function getInbox(address) {
       otp:         data.otp || null,
       attachments: JSON.parse(data.attachments || '[]'),
     };
-  });
+  }).filter(Boolean);
 
-  return emails.filter(Boolean);
+  return { emails, ttl };
 }
 
 async function getEmail(id) {
@@ -165,12 +202,13 @@ async function getInboxTtl(address) {
 // ── API Key management ──
 const AK_LIMIT = 200; // req/hour per key
 
-async function createApiKey(label = '') {
-  const key  = 'tm_' + crypto.randomBytes(16).toString('hex');
+async function createApiKey(label = '', userId = '') {
+  const key = 'tm_' + crypto.randomBytes(16).toString('hex');
   await redis.hset(`apikey:${key}`, {
     label:        label.toString().slice(0, 60),
     createdAt:    Date.now().toString(),
     requestCount: '0',
+    userId:       userId.toString(),
   });
   return key;
 }
@@ -183,6 +221,7 @@ async function getApiKey(key) {
     label:        data.label || '',
     createdAt:    parseInt(data.createdAt),
     requestCount: parseInt(data.requestCount) || 0,
+    userId:       data.userId || '',
   };
 }
 
@@ -212,7 +251,7 @@ async function checkAndIncrementRateLimit(key) {
 function _redis() { return redis; }
 
 module.exports = {
-  connect, disconnect, saveEmail, getInbox, getEmail,
+  connect, disconnect, saveEmail, getInbox, getInboxWithMeta, getEmail,
   getAttachment, deleteEmail, refreshInbox, getInboxTtl,
   createApiKey, getApiKey, deleteApiKey, checkAndIncrementRateLimit,
   _redis,

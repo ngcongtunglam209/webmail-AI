@@ -2,6 +2,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const config  = require('./config');
 const storage = require('./storage');
+const { authMiddleware } = require('./authRoutes');
 
 const router = express.Router();
 
@@ -71,9 +72,7 @@ router.get('/inbox/:address', async (req, res) => {
     return res.status(400).json({ error: 'Địa chỉ không hợp lệ' });
   }
   try {
-    const ttl = await storage.getInboxTtl(address);
-    await storage.refreshInbox(address);
-    const emails = await storage.getInbox(address);
+    const { emails, ttl } = await storage.getInboxWithMeta(address);
     res.json({ emails, ttl });
   } catch (err) {
     console.error('[API] getInbox:', err.message);
@@ -116,7 +115,8 @@ router.get('/attachment/:emailId/:index', async (req, res) => {
       : 'application/octet-stream';
     res.setHeader('Content-Type', safeType);
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(att.filename)}"`);
+    const safeFilename = (att.filename || 'file').replace(/[\r\n"\\]/g, '_');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeFilename)}"`);
     res.setHeader('Content-Length', buf.length);
     res.send(buf);
   } catch (err) {
@@ -142,11 +142,11 @@ router.delete('/email/:id', async (req, res) => {
 
 // ── API Key management ──
 
-// Tạo API key mới
-router.post('/keys', async (req, res) => {
+// Tạo API key mới — yêu cầu đăng nhập
+router.post('/keys', authMiddleware, async (req, res) => {
   const label = (req.body?.label || '').toString().slice(0, 60);
   try {
-    const key = await storage.createApiKey(label);
+    const key = await storage.createApiKey(label, req.userId);
     res.status(201).json({ key, label, createdAt: Date.now() });
   } catch (err) {
     console.error('[API] createApiKey:', err.message);
@@ -154,16 +154,20 @@ router.post('/keys', async (req, res) => {
   }
 });
 
-// Lấy thông tin API key
-router.get('/keys/:key', async (req, res) => {
+// Lấy thông tin API key — chỉ chủ sở hữu
+router.get('/keys/:key', authMiddleware, async (req, res) => {
   const data = await storage.getApiKey(req.params.key);
   if (!data) return res.status(404).json({ error: 'Key not found or revoked' });
+  if (data.userId !== req.userId) return res.status(403).json({ error: 'Không có quyền truy cập' });
   res.json(data);
 });
 
-// Xóa API key
-router.delete('/keys/:key', async (req, res) => {
+// Xóa API key — chỉ chủ sở hữu
+router.delete('/keys/:key', authMiddleware, async (req, res) => {
   try {
+    const data = await storage.getApiKey(req.params.key);
+    if (!data) return res.status(404).json({ error: 'Key not found' });
+    if (data.userId !== req.userId) return res.status(403).json({ error: 'Không có quyền xóa' });
     await storage.deleteApiKey(req.params.key);
     res.json({ deleted: true });
   } catch (err) {

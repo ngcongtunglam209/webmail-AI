@@ -231,12 +231,12 @@ function setAddress(address, ttl = 3600) {
   saveToHistory(address);
   renderHistory();
   resetTimer(ttl);
-  // Lưu địa chỉ hiện tại vào localStorage để restore sau khi F5
   localStorage.setItem('tm_current', JSON.stringify({
     address,
     originalTtl: currentTtl,
     createdAt: Date.now(),
   }));
+  syncAddressToAccount();
 }
 
 async function loadInbox() {
@@ -685,6 +685,11 @@ function renderApiKeys() {
 }
 
 apiBtn.addEventListener('click', () => {
+  if (!currentUser) {
+    showToast('🔒 Yêu cầu đăng nhập', 'Vui lòng đăng nhập để quản lý API keys.');
+    openAuthModal('login');
+    return;
+  }
   renderApiKeys();
   apiModal.classList.remove('hidden');
   apiOverlay.classList.remove('hidden');
@@ -724,3 +729,253 @@ createApiKeyBtn.addEventListener('click', async () => {
 });
 
 apiKeyLabel.addEventListener('keydown', e => { if (e.key === 'Enter') createApiKeyBtn.click(); });
+
+// ── Auth / Account ──────────────────────────────────────────
+let currentUser = null;
+
+const accountBtn      = document.getElementById('accountBtn');
+const accountBtnText  = document.getElementById('accountBtnText');
+
+// Auth modal
+const authOverlay   = document.getElementById('authOverlay');
+const authModal     = document.getElementById('authModal');
+const closeAuthBtn  = document.getElementById('closeAuthBtn');
+const loginEmail    = document.getElementById('loginEmail');
+const loginPassword = document.getElementById('loginPassword');
+const loginBtn      = document.getElementById('loginBtn');
+const loginError    = document.getElementById('loginError');
+const regUsername   = document.getElementById('regUsername');
+const regEmail      = document.getElementById('regEmail');
+const regPassword   = document.getElementById('regPassword');
+const registerBtn   = document.getElementById('registerBtn');
+const registerError = document.getElementById('registerError');
+
+// Profile modal
+const profileOverlay  = document.getElementById('profileOverlay');
+const profileModal    = document.getElementById('profileModal');
+const closeProfileBtn = document.getElementById('closeProfileBtn');
+const profileEmailEl  = document.getElementById('profileEmail');
+const logoutBtn       = document.getElementById('logoutBtn');
+const savedAddrList   = document.getElementById('savedAddrList');
+const curPassword     = document.getElementById('curPassword');
+const newPasswordEl   = document.getElementById('newPassword');
+const changePwBtn     = document.getElementById('changePwBtn');
+const pwError         = document.getElementById('pwError');
+
+// Khởi tạo: kiểm tra session hiện tại
+(async () => {
+  try {
+    const res = await fetch('/api/auth/me');
+    if (res.ok) {
+      const { user } = await res.json();
+      setLoggedIn(user);
+    }
+  } catch (_) {}
+})();
+
+function setLoggedIn(user) {
+  currentUser = user;
+  accountBtnText.textContent = user.username;
+  accountBtn.classList.add('logged-in');
+}
+
+function setLoggedOut() {
+  currentUser = null;
+  accountBtnText.textContent = 'Tài khoản';
+  accountBtn.classList.remove('logged-in');
+}
+
+accountBtn.addEventListener('click', () => {
+  if (currentUser) openProfileModal();
+  else openAuthModal('login');
+});
+
+// ── Auth modal ──
+function openAuthModal(tab = 'login') {
+  switchAuthTab(tab);
+  authModal.classList.remove('hidden');
+  authOverlay.classList.remove('hidden');
+}
+
+function closeAuthModal() {
+  authModal.classList.add('hidden');
+  authOverlay.classList.add('hidden');
+  loginError.classList.add('hidden');
+  registerError.classList.add('hidden');
+}
+
+closeAuthBtn.addEventListener('click', closeAuthModal);
+authOverlay.addEventListener('click', closeAuthModal);
+
+document.querySelectorAll('.auth-tab').forEach(btn => {
+  btn.addEventListener('click', () => switchAuthTab(btn.dataset.authTab));
+});
+
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach(b => b.classList.toggle('active', b.dataset.authTab === tab));
+  document.getElementById('authPanelLogin').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('authPanelRegister').classList.toggle('hidden', tab !== 'register');
+}
+
+loginBtn.addEventListener('click', async () => {
+  const email    = loginEmail.value.trim();
+  const password = loginPassword.value;
+  if (!email || !password) return showAuthError(loginError, 'Vui lòng nhập đầy đủ thông tin.');
+  loginBtn.disabled = true;
+  loginBtn.textContent = 'Đang đăng nhập...';
+  try {
+    const res  = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) return showAuthError(loginError, data.error);
+    setLoggedIn(data.user);
+    closeAuthModal();
+    showToast('✅ Đăng nhập thành công', `Chào mừng trở lại, ${data.user.username}!`);
+    syncAddressToAccount();
+  } catch (_) {
+    showAuthError(loginError, 'Lỗi kết nối, thử lại sau.');
+  } finally {
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'Đăng nhập';
+  }
+});
+
+loginEmail.addEventListener('keydown', e => { if (e.key === 'Enter') loginPassword.focus(); });
+loginPassword.addEventListener('keydown', e => { if (e.key === 'Enter') loginBtn.click(); });
+
+registerBtn.addEventListener('click', async () => {
+  const username = regUsername.value.trim();
+  const email    = regEmail.value.trim();
+  const password = regPassword.value;
+  if (!username || !email || !password) return showAuthError(registerError, 'Vui lòng nhập đầy đủ thông tin.');
+  registerBtn.disabled = true;
+  registerBtn.textContent = 'Đang tạo tài khoản...';
+  try {
+    const res  = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) return showAuthError(registerError, data.error);
+    setLoggedIn(data.user);
+    closeAuthModal();
+    showToast('🎉 Tạo tài khoản thành công', `Chào mừng, ${data.user.username}!`);
+    syncAddressToAccount();
+  } catch (_) {
+    showAuthError(registerError, 'Lỗi kết nối, thử lại sau.');
+  } finally {
+    registerBtn.disabled = false;
+    registerBtn.textContent = 'Tạo tài khoản';
+  }
+});
+
+regPassword.addEventListener('keydown', e => { if (e.key === 'Enter') registerBtn.click(); });
+
+function showAuthError(el, msg) {
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+// ── Profile modal ──
+async function openProfileModal() {
+  profileEmailEl.textContent = currentUser.email;
+  profileModal.classList.remove('hidden');
+  profileOverlay.classList.remove('hidden');
+  await renderSavedAddresses();
+}
+
+function closeProfileModal() {
+  profileModal.classList.add('hidden');
+  profileOverlay.classList.add('hidden');
+  pwError.classList.add('hidden');
+  curPassword.value = '';
+  newPasswordEl.value = '';
+}
+
+closeProfileBtn.addEventListener('click', closeProfileModal);
+profileOverlay.addEventListener('click', closeProfileModal);
+
+logoutBtn.addEventListener('click', async () => {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  setLoggedOut();
+  closeProfileModal();
+  showToast('👋 Đã đăng xuất', 'Hẹn gặp lại!');
+});
+
+async function renderSavedAddresses() {
+  savedAddrList.innerHTML = '<div class="saved-addr-empty">Đang tải...</div>';
+  try {
+    const res = await fetch('/api/auth/addresses');
+    if (!res.ok) throw new Error();
+    const { addresses } = await res.json();
+    if (!addresses.length) {
+      savedAddrList.innerHTML = '<div class="saved-addr-empty">Chưa có địa chỉ nào được lưu.</div>';
+      return;
+    }
+    savedAddrList.innerHTML = addresses.map(addr => `
+      <div class="saved-addr-item${addr === currentAddress ? ' active' : ''}" data-addr="${escHtml(addr)}">
+        <span class="saved-addr-str">${escHtml(addr)}</span>
+        <button class="saved-addr-del" data-del="${escHtml(addr)}" title="Xóa">×</button>
+      </div>
+    `).join('');
+
+    savedAddrList.querySelectorAll('.saved-addr-item').forEach(item => {
+      item.addEventListener('click', e => {
+        if (e.target.closest('.saved-addr-del')) return;
+        const addr = item.dataset.addr;
+        if (addr !== currentAddress) switchToAddress(addr);
+        closeProfileModal();
+      });
+    });
+
+    savedAddrList.querySelectorAll('.saved-addr-del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        await fetch(`/api/auth/addresses/${encodeURIComponent(btn.dataset.del)}`, { method: 'DELETE' });
+        await renderSavedAddresses();
+      });
+    });
+  } catch (_) {
+    savedAddrList.innerHTML = '<div class="saved-addr-empty">Không thể tải danh sách.</div>';
+  }
+}
+
+async function syncAddressToAccount() {
+  if (!currentUser || !currentAddress) return;
+  try {
+    await fetch('/api/auth/addresses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: currentAddress }),
+    });
+  } catch (_) {}
+}
+
+changePwBtn.addEventListener('click', async () => {
+  const cur = curPassword.value;
+  const nw  = newPasswordEl.value;
+  if (!cur || !nw) return showAuthError(pwError, 'Vui lòng nhập đầy đủ thông tin.');
+  changePwBtn.disabled = true;
+  changePwBtn.textContent = 'Đang cập nhật...';
+  try {
+    const res  = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword: cur, newPassword: nw }),
+    });
+    const data = await res.json();
+    if (!res.ok) return showAuthError(pwError, data.error);
+    pwError.classList.add('hidden');
+    curPassword.value = '';
+    newPasswordEl.value = '';
+    showToast('🔒 Mật khẩu đã cập nhật', 'Thay đổi thành công.');
+  } catch (_) {
+    showAuthError(pwError, 'Lỗi kết nối, thử lại sau.');
+  } finally {
+    changePwBtn.disabled = false;
+    changePwBtn.textContent = 'Cập nhật mật khẩu';
+  }
+});

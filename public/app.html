@@ -74,6 +74,7 @@
       <!-- Donate -->
       <button class="btn-donate" id="donateBtn"><span>☕</span> Ủng hộ tác giả</button>
       <button class="btn-api" id="apiBtn"><span>🔑</span> API Keys</button>
+      <button class="btn-account" id="accountBtn"><span>👤</span> <span id="accountBtnText">Tài khoản</span></button>
 
       <!-- Footer -->
       <div class="sidebar-footer">
@@ -189,6 +190,89 @@
       <div class="api-usage-note">
         Rate limit: <strong>200 req/giờ</strong> mỗi key &mdash;
         <a href="/docs" target="_blank">Xem tài liệu API ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auth modal (đăng nhập / đăng ký) -->
+  <div id="authOverlay" class="modal-overlay hidden"></div>
+  <div id="authModal" class="modal auth-modal hidden">
+    <div class="modal-header">
+      <div class="modal-meta">
+        <div class="modal-subject" id="authModalTitle">Đăng nhập</div>
+      </div>
+      <button class="btn btn-ghost" id="closeAuthBtn">✕</button>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-auth-tab="login">Đăng nhập</button>
+      <button class="auth-tab" data-auth-tab="register">Đăng ký</button>
+    </div>
+    <div class="auth-body">
+      <!-- Login -->
+      <div id="authPanelLogin" class="auth-panel">
+        <div class="auth-field">
+          <label class="auth-label">Email</label>
+          <input type="email" id="loginEmail" class="input-custom" placeholder="email@example.com" autocomplete="email" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">Mật khẩu</label>
+          <input type="password" id="loginPassword" class="input-custom" placeholder="••••••" autocomplete="current-password" />
+        </div>
+        <div id="loginError" class="auth-error hidden"></div>
+        <button class="btn btn-primary btn-full" id="loginBtn">Đăng nhập</button>
+      </div>
+      <!-- Register -->
+      <div id="authPanelRegister" class="auth-panel hidden">
+        <div class="auth-field">
+          <label class="auth-label">Tên hiển thị</label>
+          <input type="text" id="regUsername" class="input-custom" placeholder="Nguyễn Văn A" maxlength="30" autocomplete="name" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">Email (để đăng nhập)</label>
+          <input type="email" id="regEmail" class="input-custom" placeholder="email@example.com" autocomplete="email" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">Mật khẩu (tối thiểu 6 ký tự)</label>
+          <input type="password" id="regPassword" class="input-custom" placeholder="••••••" autocomplete="new-password" />
+        </div>
+        <div id="registerError" class="auth-error hidden"></div>
+        <button class="btn btn-primary btn-full" id="registerBtn">Tạo tài khoản</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile modal (đã đăng nhập) -->
+  <div id="profileOverlay" class="modal-overlay hidden"></div>
+  <div id="profileModal" class="modal profile-modal hidden">
+    <div class="modal-header">
+      <div class="modal-meta">
+        <div class="modal-subject">👤 Tài khoản của tôi</div>
+        <div class="modal-from" id="profileEmail"></div>
+      </div>
+      <div class="modal-controls">
+        <button class="btn btn-danger" id="logoutBtn">Đăng xuất</button>
+        <button class="btn btn-ghost" id="closeProfileBtn">✕</button>
+      </div>
+    </div>
+    <div class="profile-body">
+      <!-- Địa chỉ đã lưu -->
+      <div class="profile-section">
+        <div class="profile-section-title">📧 Địa chỉ đã lưu <span class="profile-hint">(đồng bộ mọi thiết bị)</span></div>
+        <div id="savedAddrList" class="saved-addr-list"></div>
+      </div>
+      <!-- Đổi mật khẩu -->
+      <div class="profile-section">
+        <div class="profile-section-title">🔒 Đổi mật khẩu</div>
+        <div class="auth-field">
+          <label class="auth-label">Mật khẩu hiện tại</label>
+          <input type="password" id="curPassword" class="input-custom" placeholder="••••••" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">Mật khẩu mới</label>
+          <input type="password" id="newPassword" class="input-custom" placeholder="••••••" />
+        </div>
+        <div id="pwError" class="auth-error hidden"></div>
+        <button class="btn btn-secondary" id="changePwBtn">Cập nhật mật khẩu</button>
       </div>
     </div>
   </div>

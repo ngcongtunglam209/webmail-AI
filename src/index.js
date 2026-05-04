@@ -1,14 +1,16 @@
-const express    = require('express');
-const http       = require('http');
-const { Server } = require('socket.io');
-const cors       = require('cors');
-const helmet     = require('helmet');
-const rateLimit  = require('express-rate-limit');
-const path       = require('path');
+const express      = require('express');
+const http         = require('http');
+const { Server }   = require('socket.io');
+const cors         = require('cors');
+const helmet       = require('helmet');
+const rateLimit    = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
+const path         = require('path');
 
 const config    = require('./config');
 const storage   = require('./storage');
 const apiRouter = require('./api');
+const { router: authRouter } = require('./authRoutes');
 const { startSMTP, setNewEmailHandler }      = require('./smtp');
 const { startTelegramBot, notifyTelegram }   = require('./telegram');
 const devApiRouter = require('./devapi');
@@ -33,7 +35,11 @@ async function main() {
     },
   }));
 
-  app.use(cors({ origin: process.env.APP_ORIGIN || `http://localhost:${config.port}` }));
+  app.use(cors({
+    origin:      process.env.APP_ORIGIN || `http://localhost:${config.port}`,
+    credentials: true,
+  }));
+  app.use(cookieParser());
   app.use(express.json({ limit: '1mb' }));
   app.set('trust proxy', 1);
 
@@ -72,7 +78,24 @@ async function main() {
   }));
   app.use('/v1', devApiRouter);
 
+  // Rate limit riêng cho auth — phải đặt trước static/router
+  app.use('/api/auth/login', rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Quá nhiều lần đăng nhập, thử lại sau 15 phút.' },
+  }));
+  app.use('/api/auth/register', rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Quá nhiều tài khoản được tạo từ IP này, thử lại sau.' },
+  }));
+
   app.use(express.static(path.join(__dirname, '../public')));
+  app.use('/api/auth', authRouter);
   app.use('/api', apiRouter);
 
   app.get('/app',  (req, res) => res.sendFile(path.join(__dirname, '../public/app.html')));
@@ -88,9 +111,15 @@ async function main() {
     perMessageDeflate: false,
   });
 
+  const isValidDomain = (address) => {
+    if (typeof address !== 'string') return false;
+    const parts = address.split('@');
+    return parts.length === 2 && config.domains.includes(parts[1].toLowerCase());
+  };
+
   io.on('connection', (socket) => {
     socket.on('watch', (address) => {
-      if (typeof address === 'string' && address.length < 200) {
+      if (isValidDomain(address)) {
         socket.join(`inbox:${address.toLowerCase()}`);
       }
     });

@@ -239,18 +239,19 @@ async function api(method, path, body) {
 }
 
 async function doLogin() {
+  const errEl = document.getElementById('login-err');
   const val = document.getElementById('secret-input').value.trim();
-  if (!val) return;
+  if (!val) { errEl.textContent = 'Vui lòng nhập Admin Secret'; return; }
   const btn = document.getElementById('login-btn');
   btn.disabled = true; btn.textContent = '...';
-  document.getElementById('login-err').textContent = '';
+  errEl.textContent = '';
   secret = val;
-  const { ok, data } = await api('GET', '/admin/api/stats');
+  const { ok, status, data } = await api('GET', '/admin/api/stats');
   if (ok) {
     sessionStorage.setItem('adm_s', secret);
     showDashboard();
   } else {
-    document.getElementById('login-err').textContent = data.error || 'Sai secret';
+    errEl.textContent = data.error || (status === 0 ? 'Không kết nối được server' : `Lỗi ${status}: sai secret hoặc server chưa cập nhật`);
     secret = '';
     btn.disabled = false; btn.textContent = 'Đăng nhập';
   }

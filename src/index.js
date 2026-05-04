@@ -22,7 +22,7 @@ async function main() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc:  ["'self'"],
-        scriptSrc:   ["'self'"],
+        scriptSrc:   ["'self'", 'https://cdn.jsdelivr.net'],
         styleSrc:    ["'self'", 'https://fonts.googleapis.com', "'unsafe-inline'"],
         fontSrc:     ["'self'", 'https://fonts.gstatic.com'],
         imgSrc:      ["'self'", 'data:', 'https://img.vietqr.io', 'https://api.qrserver.com'],
@@ -32,7 +32,7 @@ async function main() {
     },
   }));
 
-  app.use(cors());
+  app.use(cors({ origin: process.env.APP_ORIGIN || `http://localhost:${config.port}` }));
   app.use(express.json({ limit: '1mb' }));
   app.set('trust proxy', 1);
 

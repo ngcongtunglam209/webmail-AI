@@ -155,11 +155,12 @@
       <button class="tab" data-tab="text">Văn bản</button>
     </div>
     <div class="modal-body">
-      <iframe id="htmlFrame" sandbox="allow-same-origin" title="Email content"></iframe>
+      <iframe id="htmlFrame" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" title="Email content"></iframe>
       <pre id="textContent" class="hidden"></pre>
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/app.js"></script>
 </body>

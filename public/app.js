@@ -230,7 +230,7 @@ function setAddress(address, ttl = 3600) {
 async function loadInbox() {
   if (!currentAddress) return;
   const res = await fetch(`/api/inbox/${encodeURIComponent(currentAddress)}`);
-  if (!res.ok) return;
+  if (!res.ok) { showToast('❌ Lỗi tải inbox', 'Không thể kết nối, thử lại sau.'); return; }
   const { emails } = await res.json();
 
   emailList.innerHTML = '';
@@ -292,7 +292,7 @@ function prependEmailItem(email, unread = false) {
 
 async function openEmail(id, item) {
   const res = await fetch(`/api/email/${id}?address=${encodeURIComponent(currentAddress)}`);
-  if (!res.ok) return;
+  if (!res.ok) { showToast('❌ Lỗi', 'Không thể tải nội dung email.'); return; }
   const { email } = await res.json();
 
   currentEmailId = id;
@@ -343,42 +343,20 @@ async function openEmail(id, item) {
     attachmentsBar.innerHTML = '';
   }
 
+  // Email content — DOMPurify chạy trong main page context (không cần allow-scripts trong iframe)
   const rawHtml = email.html || `<div style="font-family:sans-serif;padding:24px;color:#333;line-height:1.7">${escHtml(email.text || '(không có nội dung)')}</div>`;
-  const doc = htmlFrame.contentDocument || htmlFrame.contentWindow?.document;
-
-  if (doc) {
-    // Inject DOMPurify from CDN into the iframe context, then sanitize in-place
-    doc.open();
-    doc.write(`<!DOCTYPE html><html><head>
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"><\/script>
-</head><body><script>
-(function() {
-  var raw = ${JSON.stringify(rawHtml)};
-  var clean = (typeof DOMPurify !== 'undefined')
-    ? DOMPurify.sanitize(raw, { FORCE_BODY: true })
-    : raw.replace(/<script[\\s\\S]*?<\\/script>/gi, '')
-         .replace(/\\ on\\w+\\s*=/gi, ' data-removed=');
-  document.open();
-  document.write(clean);
-  document.close();
-})();
-<\/script></body></html>`);
-    doc.close();
+  const clean = (typeof DOMPurify !== 'undefined')
+    ? DOMPurify.sanitize(rawHtml, { FORCE_BODY: true })
+    : rawHtml.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/\bon\w+\s*=/gi, 'data-removed=');
+  // <base target="_blank"> → tất cả link trong email mở tab mới
+  const wrappedHtml = `<!DOCTYPE html><html><head><base target="_blank"></head><body>${clean}</body></html>`;
+  const emailDoc = htmlFrame.contentDocument || htmlFrame.contentWindow?.document;
+  if (emailDoc) {
+    emailDoc.open();
+    emailDoc.write(wrappedHtml);
+    emailDoc.close();
   } else {
-    // srcdoc fallback: sanitize with inline DOMPurify via a data URI approach
-    const purifyScript = 'https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js';
-    htmlFrame.srcdoc = `<!DOCTYPE html><html><head>
-<script src="${purifyScript}"><\/script>
-</head><body><script>
-(function() {
-  var raw = ${JSON.stringify(rawHtml)};
-  var clean = (typeof DOMPurify !== 'undefined')
-    ? DOMPurify.sanitize(raw, { FORCE_BODY: true })
-    : raw.replace(/<script[\\s\\S]*?<\\/script>/gi, '')
-         .replace(/\\ on\\w+\\s*=/gi, ' data-removed=');
-  document.body.innerHTML = clean;
-})();
-<\/script></body></html>`;
+    htmlFrame.srcdoc = wrappedHtml;
   }
 
   textContent.textContent = email.text || '(không có nội dung text)';

@@ -6,7 +6,7 @@ const { authMiddleware } = require('./authRoutes');
 
 const router = express.Router();
 
-const VALID_TTLS = [600, 1800, 3600, 21600, 86400]; // 10m, 30m, 1h, 6h, 24h
+const VALID_TTLS = [600, 1800, 3600, 21600, 86400, 604800]; // 10m, 30m, 1h, 6h, 24h, 7d
 
 // Whitelist MIME types được phép trả về cho attachment
 const ALLOWED_CONTENT_TYPES = new Set([
@@ -34,8 +34,8 @@ function isValidAddress(address) {
   return config.domains.includes(parts[1].toLowerCase());
 }
 
-// Tạo địa chỉ ngẫu nhiên
-router.get('/generate', (req, res) => {
+// Tạo địa chỉ ngẫu nhiên — chỉ admin (đã đăng nhập)
+router.get('/generate', authMiddleware, (req, res) => {
   if (!config.domains.length) {
     return res.status(500).json({ error: 'No domains configured' });
   }
@@ -46,8 +46,8 @@ router.get('/generate', (req, res) => {
   res.json({ address, ttl });
 });
 
-// Tạo địa chỉ tùy chỉnh
-router.get('/generate/:username/:domain', (req, res) => {
+// Tạo địa chỉ tùy chỉnh — chỉ admin (đã đăng nhập)
+router.get('/generate/:username/:domain', authMiddleware, (req, res) => {
   const { username, domain } = req.params;
   if (!config.domains.includes(domain.toLowerCase())) {
     return res.status(400).json({ error: 'Domain không được phép' });
@@ -121,21 +121,6 @@ router.get('/attachment/:emailId/:index', async (req, res) => {
     res.send(buf);
   } catch (err) {
     console.error('[API] getAttachment:', err.message);
-    res.status(500).json({ error: 'Internal error' });
-  }
-});
-
-// Xóa email
-router.delete('/email/:id', async (req, res) => {
-  const { address } = req.query;
-  if (!address || !isValidAddress(address)) {
-    return res.status(400).json({ error: 'Địa chỉ không hợp lệ' });
-  }
-  try {
-    await storage.deleteEmail(req.params.id, address);
-    res.json({ success: true });
-  } catch (err) {
-    console.error('[API] deleteEmail:', err.message);
     res.status(500).json({ error: 'Internal error' });
   }
 });

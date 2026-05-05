@@ -67,11 +67,33 @@ const copyStkBtn     = document.getElementById('copyStkBtn');
 // ── Init ──
 (async () => {
   await loadDomains();
-  if (!restoreCurrentAddress()) {
-    await generateNewAddress();
+
+  // Kiểm tra auth trước khi quyết định hành vi
+  try {
+    const res = await fetch('/api/auth/me');
+    if (res.ok) {
+      const { user } = await res.json();
+      setLoggedIn(user);
+    }
+  } catch (_) {}
+
+  if (currentUser) {
+    // Chế độ admin: đầy đủ tính năng
+    if (!restoreCurrentAddress()) {
+      await generateNewAddress();
+    } else {
+      await loadInbox();
+    }
   } else {
-    await loadInbox();
+    // Chế độ khách: read-only
+    applyGuestMode();
+    if (!restoreCurrentAddress()) {
+      showGuestWelcome();
+    } else {
+      await loadInbox();
+    }
   }
+
   renderHistory();
   updateNotifBtn();
 })();
@@ -730,6 +752,43 @@ createApiKeyBtn.addEventListener('click', async () => {
 
 apiKeyLabel.addEventListener('keydown', e => { if (e.key === 'Enter') createApiKeyBtn.click(); });
 
+// ── Guest mode ──
+function applyGuestMode() {
+  // Ẩn nút xóa email
+  deleteEmailBtn.classList.add('hidden');
+
+  // Ẩn TTL controls (khách không tạo address nên không cần)
+  document.querySelector('.ttl-row')?.classList.add('hidden');
+  document.querySelector('.ttl-bar')?.classList.add('hidden');
+
+  // Nút "+" → yêu cầu đăng nhập
+  newBtn.onclick = () => {
+    showToast('🔒 Chỉ admin', 'Vui lòng đăng nhập để tạo địa chỉ mới.');
+    openAuthModal('login');
+  };
+
+  // Nút custom address → xem inbox (không gọi /api/generate)
+  customBtn.onclick = () => {
+    const user = customUser.value.trim();
+    if (!user) return;
+    const address = `${user.toLowerCase()}@${domainSelect.value}`;
+    customUser.value = '';
+    switchToAddress(address);
+  };
+  customUser.onkeydown = e => { if (e.key === 'Enter') customBtn.click(); };
+}
+
+function showGuestWelcome() {
+  emailAddressEl.textContent = 'Nhập địa chỉ để xem';
+  emailList.innerHTML = `
+    <div class="empty-state">
+      <div class="empty-icon">📬</div>
+      <div class="empty-title">Chế độ xem</div>
+      <div class="empty-desc">Nhập địa chỉ email bên trên và nhấn Enter để xem inbox.</div>
+    </div>`;
+  updateCount();
+}
+
 // ── Auth / Account ──────────────────────────────────────────
 let currentUser = null;
 
@@ -762,16 +821,6 @@ const newPasswordEl   = document.getElementById('newPassword');
 const changePwBtn     = document.getElementById('changePwBtn');
 const pwError         = document.getElementById('pwError');
 
-// Khởi tạo: kiểm tra session hiện tại
-(async () => {
-  try {
-    const res = await fetch('/api/auth/me');
-    if (res.ok) {
-      const { user } = await res.json();
-      setLoggedIn(user);
-    }
-  } catch (_) {}
-})();
 
 function setLoggedIn(user) {
   currentUser = user;

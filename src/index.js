@@ -12,8 +12,9 @@ const storage   = require('./storage');
 const apiRouter = require('./api');
 const { router: authRouter }  = require('./authRoutes');
 const { router: adminRouter } = require('./adminRoutes');
-const { startSMTP, setNewEmailHandler }      = require('./smtp');
-const { startTelegramBot, notifyTelegram }   = require('./telegram');
+const { startSMTP, setNewEmailHandler }                  = require('./smtp');
+const { router: inboundRouter, setInboundEmailHandler }  = require('./inboundRoutes');
+const { startTelegramBot, notifyTelegram }               = require('./telegram');
 const devApiRouter = require('./devapi');
 
 async function main() {
@@ -99,6 +100,9 @@ async function main() {
   app.use('/api/auth', authRouter);
   app.use('/api', apiRouter);
 
+  app.use('/inbound/cloudflare', rateLimit({ windowMs: 60_000, max: 60, message: { error: 'Too many requests' } }));
+  app.use('/inbound/cloudflare', inboundRouter);
+
   app.use('/admin/api', rateLimit({ windowMs: 60_000, max: 120, message: { error: 'Too many requests' } }));
   app.use('/admin/api', adminRouter);
   app.get('/admin', (req, res) => {
@@ -140,10 +144,12 @@ async function main() {
     });
   });
 
-  setNewEmailHandler((to, emailMeta) => {
+  const emailHandler = (to, emailMeta) => {
     io.to(`inbox:${to}`).emit('new_email', emailMeta);
     notifyTelegram(to, emailMeta);
-  });
+  };
+  setNewEmailHandler(emailHandler);
+  setInboundEmailHandler(emailHandler);
 
   startTelegramBot();
 
